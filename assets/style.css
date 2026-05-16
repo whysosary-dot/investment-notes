@@ -1,0 +1,136 @@
+:root {
+  --bg: #0b0d10;
+  --panel: #14171c;
+  --panel-2: #1b1f26;
+  --line: #262b34;
+  --text: #e7ebf0;
+  --muted: #8a93a0;
+  --accent: #6aa3ff;
+  --accent-2: #9bd1ff;
+  --tag: #2a3142;
+  --shadow: 0 2px 14px rgba(0,0,0,.25);
+  --radius: 14px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f7f8fb;
+    --panel: #ffffff;
+    --panel-2: #f1f3f7;
+    --line: #e3e7ee;
+    --text: #11151a;
+    --muted: #5b6471;
+    --accent: #1f6feb;
+    --accent-2: #0b5fd1;
+    --tag: #e8eef9;
+    --shadow: 0 2px 10px rgba(20,30,55,.07);
+  }
+}
+
+* { box-sizing: border-box; }
+html, body { background: var(--bg); color: var(--text); margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+    "Pretendard", "Noto Sans KR", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.55;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+.topbar {
+  border-bottom: 1px solid var(--line);
+  padding: 28px 0 22px;
+  background: linear-gradient(180deg, rgba(106,163,255,.05), transparent);
+}
+.topbar h1 { margin: 0 0 4px; font-size: 26px; letter-spacing: -.01em; }
+.topbar .subtitle { margin: 0; color: var(--muted); font-size: 14px; }
+.topbar .back {
+  display: inline-block; margin-bottom: 10px;
+  color: var(--accent); text-decoration: none; font-size: 13px;
+}
+.topbar .back:hover { text-decoration: underline; }
+
+.toolbar {
+  display: flex; align-items: center; gap: 12px;
+  margin: 22px 0 18px;
+}
+.toolbar input[type="search"] {
+  flex: 1; padding: 11px 14px;
+  background: var(--panel); color: var(--text);
+  border: 1px solid var(--line); border-radius: 10px;
+  font-size: 14px; outline: none;
+  transition: border-color .15s;
+}
+.toolbar input[type="search"]:focus { border-color: var(--accent); }
+.counter { color: var(--muted); font-size: 13px; white-space: nowrap; }
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 14px;
+  padding-bottom: 50px;
+}
+.company {
+  display: block; text-decoration: none; color: inherit;
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 18px;
+  transition: transform .12s ease, border-color .12s ease, background .12s ease;
+  box-shadow: var(--shadow);
+}
+.company:hover {
+  transform: translateY(-2px);
+  border-color: var(--accent);
+  background: var(--panel-2);
+}
+.company .name { font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+.company .meta { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+.company .count {
+  display: inline-block; padding: 2px 8px;
+  background: var(--tag); color: var(--text);
+  border-radius: 999px; font-size: 11px;
+}
+
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  padding-bottom: 60px;
+}
+.card {
+  background: var(--panel); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 18px 18px 16px;
+  box-shadow: var(--shadow);
+  display: flex; flex-direction: column;
+}
+.card h3 { margin: 0 0 4px; font-size: 15.5px; line-height: 1.35; }
+.card .date { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
+.card ul { margin: 0 0 12px; padding-left: 18px; }
+.card li { font-size: 14px; margin: 3px 0; }
+.card .img {
+  display: block; margin: 0 0 12px;
+  border-radius: 10px; overflow: hidden;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+}
+.card .img img { display: block; width: 100%; height: auto; }
+.card .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: auto; }
+.card .tag {
+  background: var(--tag); color: var(--text);
+  font-size: 11px; padding: 3px 8px; border-radius: 999px;
+}
+
+.empty {
+  text-align: center; padding: 60px 20px;
+  color: var(--muted);
+}
+.empty h2 { color: var(--text); margin: 0 0 8px; font-size: 18px; }
+
+.footer {
+  border-top: 1px solid var(--line);
+  padding: 16px 0 28px; margin-top: 20px;
+  color: var(--muted); font-size: 12px;
+}
+.footer .wrap { display: flex; justify-content: space-between; align-items: center; }
+.footer a { color: var(--muted); text-decoration: none; }
+.footer a:hover { color: var(--accent); }

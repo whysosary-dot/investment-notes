@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>기업 상세 — Investment Notes</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <a href="index.html" class="back">← 목록</a>
+    <h1 id="company-name">기업 상세</h1>
+    <p class="subtitle" id="company-meta"></p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="toolbar">
+    <input id="q" type="search" placeholder="이 기업 카드 안에서 검색…" autocomplete="off" />
+    <div id="counter" class="counter"></div>
+  </section>
+
+  <section id="cards" class="cards">
+    <!-- cards rendered here -->
+  </section>
+
+  <section id="empty" class="empty" hidden>
+    <h2>아직 카드가 없습니다</h2>
+    <p>이미지를 업로드하면 이곳에 요약 카드가 추가됩니다.</p>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <a href="index.html">홈으로</a>
+  </div>
+</footer>
+
+<script src="assets/company.js"></script>
+</body>
+</html>

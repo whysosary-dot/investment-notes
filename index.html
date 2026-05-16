@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Investment Notes — 기업 리서치 보관소</title>
+<link rel="stylesheet" href="assets/style.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="wrap">
+    <h1>Investment Notes</h1>
+    <p class="subtitle">이미지 자료를 정리한 기업별 리서치 카드</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="toolbar">
+    <input id="q" type="search" placeholder="기업명·티커·태그 검색…" autocomplete="off" />
+    <div id="counter" class="counter"></div>
+  </section>
+
+  <section id="grid" class="grid">
+    <!-- companies rendered here -->
+  </section>
+
+  <section id="empty" class="empty" hidden>
+    <h2>아직 등록된 기업이 없어요</h2>
+    <p>이미지를 업로드하면 Claude가 분석해 카드를 추가하고 GitHub에 자동 커밋합니다.</p>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap">
+    <span id="updated"></span>
+    <a id="repolink" href="#" target="_blank" rel="noopener">GitHub Repo</a>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+</body>
+</html>
