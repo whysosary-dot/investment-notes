@@ -35,6 +35,64 @@
   function drawChart(canvasId, cfg) {
     const canvas = document.getElementById(canvasId);
     if (!canvas || typeof Chart === "undefined") return;
+    const type = cfg.type || "bar";
+
+    if (type === "donut") {
+      const COLORS = ["#378ADD","#0F6E56","#534AB7","#EF9F27","#D85A30","#85B7EB","#639922","#D4537E"];
+      new Chart(canvas, {
+        type: "doughnut",
+        data: {
+          labels: cfg.labels,
+          datasets: [{
+            data: cfg.data,
+            backgroundColor: (cfg.colors || COLORS).slice(0, cfg.data.length),
+            borderWidth: 1,
+            borderColor: "rgba(128,128,128,0.15)"
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: true, position: "right", labels: { font: { size: 10 }, boxWidth: 10, padding: 6 } },
+            tooltip: {
+              callbacks: {
+                label: ctx => " " + ctx.label + ": " + ctx.parsed.toLocaleString() + (cfg.unit ? cfg.unit : "")
+              }
+            }
+          }
+        }
+      });
+      return;
+    }
+
+    if (type === "bar-h") {
+      const defColors = cfg.data.map(() => "#85B7EB");
+      const bg = cfg.colors || defColors;
+      new Chart(canvas, {
+        type: "bar",
+        data: {
+          labels: cfg.labels,
+          datasets: [{ data: cfg.data, backgroundColor: bg, borderRadius: 3, borderSkipped: false }]
+        },
+        options: {
+          indexAxis: "y",
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: { label: ctx => " " + ctx.parsed.x.toLocaleString() + (cfg.unit ? " " + cfg.unit : "") }
+            }
+          },
+          scales: {
+            y: { ticks: { font: { size: 10 } }, grid: { display: false } },
+            x: { ticks: { font: { size: 10 }, callback: v => v.toLocaleString() }, grid: { color: "rgba(130,130,130,0.12)" } }
+          }
+        }
+      });
+      return;
+    }
+
+    // default: vertical bar with optional consensus line
     const n = cfg.data.length;
     const PREV = "#85B7EB";
     const SURPRISE = "#0F6E56";
@@ -46,7 +104,9 @@
       if (cfg.surprise === false) return SHOCK;
       return NEUTRAL;
     }
-    const bg = cfg.data.map((_, i) => i < n - 1 ? PREV : latestColor());
+    const bg = cfg.colors
+      ? cfg.colors
+      : cfg.data.map((_, i) => i < n - 1 ? PREV : latestColor());
     const datasets = [{ data: cfg.data, backgroundColor: bg, borderRadius: 3, borderSkipped: false }];
     if (cfg.consensus != null) {
       datasets.push({
@@ -77,6 +137,13 @@
     });
   }
 
+  function chartWrapHeight(cfg) {
+    const type = cfg.type || "bar";
+    if (type === "donut") return 160;
+    if (type === "bar-h") return Math.max(cfg.labels.length * 38 + 44, 110);
+    return 150;
+  }
+
   function render(list) {
     cardsEl.innerHTML = "";
     if (!list.length) {
@@ -96,26 +163,33 @@
           '<img loading="lazy" src="' + encodeURI(k.source_image) + '" alt="source image" /></a>'
         : "";
 
+      // support both chart (single) and charts (array)
+      const chartList = k.charts ? k.charts : (k.chart ? [k.chart] : []);
       let chartBlock = "";
-      if (k.chart) {
-        const cid = "chart-" + escapeAttr(k.id);
+
+      for (let ci = 0; ci < chartList.length; ci++) {
+        const cfg = chartList[ci];
+        const cid = chartList.length > 1
+          ? "chart-" + escapeAttr(k.id) + "-" + ci
+          : "chart-" + escapeAttr(k.id);
         let badge = "";
-        if (k.chart.consensus != null && k.chart.surprise_pct != null) {
-          const isShock = k.chart.surprise === false;
-          const sign = k.chart.surprise_pct >= 0 ? "+" : "";
+        if (cfg.consensus != null && cfg.surprise_pct != null) {
+          const isShock = cfg.surprise === false;
+          const sign = cfg.surprise_pct >= 0 ? "+" : "";
           badge = '<span class="chart-badge ' + (isShock ? "shock" : "surp") + '">' +
-            sign + k.chart.surprise_pct + "%</span>";
+            sign + cfg.surprise_pct + "%</span>";
         }
-        chartBlock =
+        const h = chartWrapHeight(cfg);
+        chartBlock +=
           '<div class="card-chart">' +
           '<div class="chart-hd">' +
-          '<span class="chart-lbl">' + escapeHtml(k.chart.title || "영업이익") +
-          " (" + escapeHtml(k.chart.unit || "억원") + ")</span>" + badge +
+          '<span class="chart-lbl">' + escapeHtml(cfg.title || "차트") +
+          (cfg.unit ? " (" + escapeHtml(cfg.unit) + ")" : "") + "</span>" + badge +
           "</div>" +
-          '<div class="chart-wrap"><canvas id="' + cid + '" role="img" ' +
-          'aria-label="' + escapeAttr((k.chart.title || "영업이익") + " 추이") + '"></canvas></div>' +
-          "</div>";
-        chartQueue.push({ id: cid, cfg: k.chart });
+          '<div class="chart-wrap" style="height:' + h + 'px">' +
+          '<canvas id="' + cid + '" role="img" aria-label="' + escapeAttr(cfg.title || "차트") + '"></canvas>' +
+          "</div></div>";
+        chartQueue.push({ id: cid, cfg });
       }
 
       const bullets = (k.summary || []).map(s => "<li>" + escapeHtml(s) + "</li>").join("");
@@ -124,8 +198,7 @@
       div.innerHTML =
         "<h3>" + escapeHtml(k.title || "(제목 없음)") + "</h3>" +
         '<p class="date">' + escapeHtml(k.date || "") + "</p>" +
-        imgBlock +
-        chartBlock +
+        imgBlock + chartBlock +
         (bullets ? "<ul>" + bullets + "</ul>" : "") +
         (tags ? '<div class="tags">' + tags + "</div>" : "");
       cardsEl.appendChild(div);
@@ -134,7 +207,6 @@
     requestAnimationFrame(() => {
       chartQueue.forEach(({ id, cfg }) => drawChart(id, cfg));
     });
-
     counter.textContent = list.length + " / " + cards.length;
   }
 
