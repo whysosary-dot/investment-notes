@@ -103,9 +103,12 @@
     for (const c of sorted(list)) {
       const sec = c.sector || "기타";
       if (sec !== prevSector) {
+        const color = sectorColorMap[sec] || "var(--accent)";
         const div = document.createElement("div");
         div.className = "sector-divider";
         div.textContent = sec;
+        div.style.color = color;
+        div.style.setProperty("--divider-line", color);
         grid.appendChild(div);
         prevSector = sec;
       }
