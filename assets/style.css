@@ -52,18 +52,23 @@ body {
 .topbar .back:hover { text-decoration: underline; }
 
 .toolbar {
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
   margin: 22px 0 18px;
 }
 .toolbar input[type="search"] {
-  flex: 1; padding: 11px 14px;
+  flex: 1 1 160px; padding: 11px 14px;
   background: var(--panel); color: var(--text);
   border: 1px solid var(--line); border-radius: 10px;
   font-size: 14px; outline: none;
   transition: border-color .15s;
 }
 .toolbar input[type="search"]:focus { border-color: var(--accent); }
-.counter { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.counter { color: var(--muted); font-size: 13px; white-space: nowrap; margin-left: auto; }
+
+@media (max-width: 540px) {
+  .toolbar input[type="search"] { flex-basis: 100%; }
+  .sort-btn { flex: 1; text-align: center; padding: 9px 6px; }
+}
 .sort-btn {
   flex-shrink: 0; padding: 9px 13px;
   background: var(--panel); color: var(--muted);
