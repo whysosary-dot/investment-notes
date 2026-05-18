@@ -69,22 +69,53 @@
     counter.textContent = list.length + " / " + companies.length;
   }
 
+  // ── 정렬 ────────────────────────────────────────────
+  let sortMode = "default"; // "default" | "recent"
+
+  function latestDate(c) {
+    const dates = (c.cards || []).map(k => k.date).filter(Boolean);
+    if (c.created_at) dates.push(c.created_at);
+    return dates.length ? dates.slice().sort().pop() : "0000-00-00";
+  }
+
+  function sorted(list) {
+    if (sortMode === "recent") {
+      return list.slice().sort((a, b) => latestDate(b).localeCompare(latestDate(a)));
+    }
+    return list;
+  }
+
   function filter() {
     const t = (q.value || "").trim().toLowerCase();
-    if (!t) return render(companies);
-    const out = companies.filter(c => {
+    const base = t ? companies.filter(c => {
       const hay = [
         c.name, c.ticker, c.sector,
         ...(c.tags || []),
         ...(c.cards || []).flatMap(k => [k.title, ...(k.tags || []), ...(k.summary || [])])
       ].filter(Boolean).join(" ").toLowerCase();
       return hay.includes(t);
-    });
-    render(out);
+    }) : companies;
+    render(sorted(base));
   }
 
+  const btnDefault = document.getElementById("sort-default");
+  const btnRecent  = document.getElementById("sort-recent");
+
+  btnDefault.addEventListener("click", () => {
+    sortMode = "default";
+    btnDefault.classList.add("active");
+    btnRecent.classList.remove("active");
+    filter();
+  });
+  btnRecent.addEventListener("click", () => {
+    sortMode = "recent";
+    btnRecent.classList.add("active");
+    btnDefault.classList.remove("active");
+    filter();
+  });
+
   q.addEventListener("input", filter);
-  render(companies);
+  render(sorted(companies));
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, ch => ({

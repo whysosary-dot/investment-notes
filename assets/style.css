@@ -64,6 +64,15 @@ body {
 }
 .toolbar input[type="search"]:focus { border-color: var(--accent); }
 .counter { color: var(--muted); font-size: 13px; white-space: nowrap; }
+.sort-btn {
+  flex-shrink: 0; padding: 9px 13px;
+  background: var(--panel); color: var(--muted);
+  border: 1px solid var(--line); border-radius: 10px;
+  font-size: 12px; cursor: pointer; white-space: nowrap;
+  transition: border-color .15s, color .15s;
+}
+.sort-btn.active { border-color: var(--accent); color: var(--accent); }
+.sort-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 .grid {
   display: grid;
@@ -87,15 +96,15 @@ body {
 .updated-dot {
   flex-shrink: 0;
   display: inline-block;
-  width: 8px; height: 8px;
+  width: 4px; height: 4px;
   border-radius: 50%;
   background: #22c55e;
-  box-shadow: 0 0 0 3px rgba(34,197,94,.22);
+  box-shadow: 0 0 0 2px rgba(34,197,94,.22);
   animation: pulse-dot 2.4s ease-in-out infinite;
 }
 @keyframes pulse-dot {
-  0%, 100% { box-shadow: 0 0 0 3px rgba(34,197,94,.22); }
-  50%       { box-shadow: 0 0 0 5px rgba(34,197,94,.08); }
+  0%, 100% { box-shadow: 0 0 0 2px rgba(34,197,94,.22); }
+  50%       { box-shadow: 0 0 0 3px rgba(34,197,94,.08); }
 }
 .company .meta { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
 .company .count {
