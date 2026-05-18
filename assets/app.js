@@ -153,8 +153,32 @@
   btnSector.addEventListener("click",  () => setSort("sector",  btnSector));
 
   // ── 섹터 칩 ──────────────────────────────────────────
+  const CHIP_COLORS = [
+    "#378ADD", "#0F6E56", "#534AB7", "#D85A30",
+    "#B5860D", "#1A7F64", "#8B3A8B", "#1E6FA3",
+    "#C0392B", "#2471A3", "#76448A", "#17A589",
+    "#CA6F1E", "#1E8449", "#6E2FBF", "#B03A2E",
+    "#0E6655", "#2E4057"
+  ];
+
   const sectorBar = document.getElementById("sector-bar");
   const sectors = [...new Set(companies.map(c => c.sector).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
+  const sectorColorMap = {};
+  sectors.forEach((sec, i) => { sectorColorMap[sec] = CHIP_COLORS[i % CHIP_COLORS.length]; });
+
+  function hexToRgb(hex) {
+    const r = parseInt(hex.slice(1,3),16);
+    const g = parseInt(hex.slice(3,5),16);
+    const b = parseInt(hex.slice(5,7),16);
+    return r + "," + g + "," + b;
+  }
+
+  function applyChipColor(btn, color) {
+    const rgb = hexToRgb(color);
+    btn.style.setProperty("--chip-color", color);
+    btn.style.setProperty("--chip-bg", "rgba(" + rgb + ",.13)");
+    btn.style.setProperty("--chip-border", "rgba(" + rgb + ",.4)");
+  }
 
   function buildSectorChips() {
     sectorBar.innerHTML = "";
@@ -173,6 +197,7 @@
       const btn = document.createElement("button");
       btn.className = "sector-chip";
       btn.textContent = sec;
+      applyChipColor(btn, sectorColorMap[sec]);
       btn.addEventListener("click", () => {
         sectorFilter = sec;
         sectorBar.querySelectorAll(".sector-chip").forEach(ch => ch.classList.remove("active"));
