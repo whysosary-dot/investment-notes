@@ -255,14 +255,26 @@
 
   q.addEventListener("input", filter);
 
+  // ── 스크롤 위치 실시간 저장 ──────────────────────────
+  let _scrollTimer;
+  window.addEventListener("scroll", () => {
+    clearTimeout(_scrollTimer);
+    _scrollTimer = setTimeout(saveState, 80);
+  }, { passive: true });
+
+  // ── 카드 클릭 직전 최종 저장 ─────────────────────────
+  grid.addEventListener("click", e => {
+    if (e.target.closest("a.company")) saveState();
+  }, true);
+
   // ── 초기 렌더 & 스크롤 복원 ─────────────────────────
   filter();
   if (saved && saved.scrollY) {
-    // DOM 그려진 후 스크롤 복원
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        window.scrollTo(0, saved.scrollY);
-      });
-    });
+    const target = saved.scrollY;
+    // rAF × 2 → 50 ms → 200 ms 순으로 재시도 (레이아웃 완료 시점 불확실)
+    const tryScroll = () => window.scrollTo(0, target);
+    requestAnimationFrame(() => requestAnimationFrame(tryScroll));
+    setTimeout(tryScroll, 50);
+    setTimeout(tryScroll, 200);
   }
 })();
