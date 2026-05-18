@@ -69,8 +69,9 @@
     counter.textContent = list.length + " / " + companies.length;
   }
 
-  // ── 정렬 ────────────────────────────────────────────
-  let sortMode = "default"; // "default" | "recent"
+  // ── 정렬 & 섹터 필터 ────────────────────────────────
+  let sortMode    = "default"; // "default" | "recent" | "sector"
+  let sectorFilter = "";       // "" = 전체
 
   function latestDate(c) {
     const dates = (c.cards || []).map(k => k.date).filter(Boolean);
@@ -82,12 +83,48 @@
     if (sortMode === "recent") {
       return list.slice().sort((a, b) => latestDate(b).localeCompare(latestDate(a)));
     }
+    if (sortMode === "sector") {
+      return list.slice().sort((a, b) => {
+        const sa = a.sector || "";
+        const sb = b.sector || "";
+        return sa.localeCompare(sb, "ko") || a.name.localeCompare(b.name, "ko");
+      });
+    }
     return list;
+  }
+
+  // 섹터순일 때 섹터 구분선 포함 렌더링
+  function renderWithSectors(list) {
+    if (sortMode !== "sector" || sectorFilter) { render(sorted(list)); return; }
+    grid.innerHTML = "";
+    if (!list.length) { empty.hidden = false; counter.textContent = "0 / " + companies.length; return; }
+    empty.hidden = true;
+    let prevSector = null;
+    for (const c of sorted(list)) {
+      const sec = c.sector || "기타";
+      if (sec !== prevSector) {
+        const div = document.createElement("div");
+        div.className = "sector-divider";
+        div.textContent = sec;
+        grid.appendChild(div);
+        prevSector = sec;
+      }
+      const a = document.createElement("a");
+      a.className = "company";
+      a.href = "company.html?id=" + encodeURIComponent(c.id);
+      const dot = isRecentlyUpdated(c) ? '<span class="updated-dot" title="최근 7일 내 업데이트"></span>' : '';
+      a.innerHTML =
+        '<h2 class="name">' + dot + escapeHtml(c.name) + '</h2>' +
+        '<p class="meta">' + [c.ticker, c.sector].filter(Boolean).map(escapeHtml).join(" · ") + '</p>' +
+        '<span class="count">' + (c.cards || []).length + ' 카드</span>';
+      grid.appendChild(a);
+    }
+    counter.textContent = list.length + " / " + companies.length;
   }
 
   function filter() {
     const t = (q.value || "").trim().toLowerCase();
-    const base = t ? companies.filter(c => {
+    let base = t ? companies.filter(c => {
       const hay = [
         c.name, c.ticker, c.sector,
         ...(c.tags || []),
@@ -95,27 +132,60 @@
       ].filter(Boolean).join(" ").toLowerCase();
       return hay.includes(t);
     }) : companies;
-    render(sorted(base));
+    if (sectorFilter) base = base.filter(c => (c.sector || "") === sectorFilter);
+    renderWithSectors(base);
   }
 
+  // ── 정렬 버튼 ────────────────────────────────────────
   const btnDefault = document.getElementById("sort-default");
   const btnRecent  = document.getElementById("sort-recent");
+  const btnSector  = document.getElementById("sort-sector");
+  const allSortBtns = [btnDefault, btnRecent, btnSector];
 
-  btnDefault.addEventListener("click", () => {
-    sortMode = "default";
-    btnDefault.classList.add("active");
-    btnRecent.classList.remove("active");
+  function setSort(mode, btn) {
+    sortMode = mode;
+    allSortBtns.forEach(b => b.classList.remove("active"));
+    btn.classList.add("active");
     filter();
-  });
-  btnRecent.addEventListener("click", () => {
-    sortMode = "recent";
-    btnRecent.classList.add("active");
-    btnDefault.classList.remove("active");
-    filter();
-  });
+  }
+  btnDefault.addEventListener("click", () => setSort("default", btnDefault));
+  btnRecent.addEventListener("click",  () => setSort("recent",  btnRecent));
+  btnSector.addEventListener("click",  () => setSort("sector",  btnSector));
+
+  // ── 섹터 칩 ──────────────────────────────────────────
+  const sectorBar = document.getElementById("sector-bar");
+  const sectors = [...new Set(companies.map(c => c.sector).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
+
+  function buildSectorChips() {
+    sectorBar.innerHTML = "";
+    const all = document.createElement("button");
+    all.className = "sector-chip active";
+    all.textContent = "전체";
+    all.addEventListener("click", () => {
+      sectorFilter = "";
+      sectorBar.querySelectorAll(".sector-chip").forEach(ch => ch.classList.remove("active"));
+      all.classList.add("active");
+      filter();
+    });
+    sectorBar.appendChild(all);
+
+    sectors.forEach(sec => {
+      const btn = document.createElement("button");
+      btn.className = "sector-chip";
+      btn.textContent = sec;
+      btn.addEventListener("click", () => {
+        sectorFilter = sec;
+        sectorBar.querySelectorAll(".sector-chip").forEach(ch => ch.classList.remove("active"));
+        btn.classList.add("active");
+        filter();
+      });
+      sectorBar.appendChild(btn);
+    });
+  }
+  buildSectorChips();
 
   q.addEventListener("input", filter);
-  render(sorted(companies));
+  renderWithSectors(companies);
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, ch => ({
