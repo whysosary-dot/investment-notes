@@ -83,7 +83,20 @@ body {
   border-color: var(--accent);
   background: var(--panel-2);
 }
-.company .name { font-size: 16px; font-weight: 600; margin: 0 0 6px; }
+.company .name { font-size: 16px; font-weight: 600; margin: 0 0 6px; display: flex; align-items: center; gap: 7px; }
+.updated-dot {
+  flex-shrink: 0;
+  display: inline-block;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 0 3px rgba(34,197,94,.22);
+  animation: pulse-dot 2.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(34,197,94,.22); }
+  50%       { box-shadow: 0 0 0 5px rgba(34,197,94,.08); }
+}
 .company .meta { color: var(--muted); font-size: 12px; margin: 0 0 12px; }
 .company .count {
   display: inline-block; padding: 2px 8px;

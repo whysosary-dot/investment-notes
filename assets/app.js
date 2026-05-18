@@ -33,6 +33,17 @@
     }
   } catch (_) {}
 
+  function isRecentlyUpdated(c, days) {
+    days = days || 7;
+    var now = new Date();
+    var cutoff = new Date(now - days * 86400000);
+    var dates = (c.cards || []).map(function(k) { return k.date; }).filter(Boolean).map(function(d) { return new Date(d); });
+    var maxCard = dates.length ? new Date(Math.max.apply(null, dates)) : null;
+    if (maxCard && maxCard >= cutoff) return true;
+    if (c.created_at && new Date(c.created_at) >= cutoff) return true;
+    return false;
+  }
+
   function render(list) {
     grid.innerHTML = "";
     if (!list.length) {
@@ -46,8 +57,9 @@
       a.className = "company";
       a.href = "company.html?id=" + encodeURIComponent(c.id);
       const cardCount = (c.cards || []).length;
+      const dot = isRecentlyUpdated(c) ? '<span class="updated-dot" title="최근 7일 내 업데이트"></span>' : '';
       a.innerHTML =
-        '<h2 class="name">' + escapeHtml(c.name) + '</h2>' +
+        '<h2 class="name">' + dot + escapeHtml(c.name) + '</h2>' +
         '<p class="meta">' +
           [c.ticker, c.sector].filter(Boolean).map(escapeHtml).join(" · ") +
         '</p>' +
