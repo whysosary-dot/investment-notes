@@ -65,6 +65,37 @@
       return;
     }
 
+    if (type === "line") {
+      new Chart(canvas, {
+        type: "line",
+        data: {
+          labels: cfg.labels,
+          datasets: [{
+            data: cfg.data,
+            borderColor: cfg.color || "#0F6E56",
+            backgroundColor: cfg.fill ? (cfg.fill_color || "rgba(15,110,86,0.12)") : "transparent",
+            fill: !!cfg.fill,
+            tension: 0.3,
+            borderWidth: 2,
+            pointRadius: 3,
+            pointBackgroundColor: cfg.color || "#0F6E56"
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ctx.parsed.y.toLocaleString() + (cfg.unit ? " " + cfg.unit : "") } }
+          },
+          scales: {
+            x: { ticks: { font: { size: 10 }, autoSkip: true, maxTicksLimit: 8, maxRotation: 45 }, grid: { display: false } },
+            y: { ticks: { font: { size: 10 }, callback: v => v.toLocaleString() }, grid: { color: "rgba(130,130,130,0.12)" }, beginAtZero: true }
+          }
+        }
+      });
+      return;
+    }
+
     if (type === "bar-h") {
       const defColors = cfg.data.map(() => "#85B7EB");
       const bg = cfg.colors || defColors;
@@ -141,6 +172,7 @@
     const type = cfg.type || "bar";
     if (type === "donut") return 160;
     if (type === "bar-h") return Math.max(cfg.labels.length * 38 + 44, 110);
+    if (type === "line") return 150;
     return 150;
   }
 
