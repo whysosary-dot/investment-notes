@@ -65,9 +65,23 @@
     counter.textContent = list.length + " / " + companies.length;
   }
 
+  // ── URL 상태 저장/복원 ──────────────────────────────
+  const _params = new URLSearchParams(location.search);
+
+  function updateUrl() {
+    const p = new URLSearchParams();
+    if (sortMode !== "default") p.set("sort", sortMode);
+    if (sectorFilter) p.set("sector", sectorFilter);
+    const qv = (q.value || "").trim();
+    if (qv) p.set("q", qv);
+    const qs = p.toString();
+    history.replaceState(null, "", qs ? "?" + qs : location.pathname);
+  }
+
   // ── 정렬 & 섹터 필터 ────────────────────────────────
-  let sortMode    = "default"; // "default" | "recent" | "sector"
-  let sectorFilter = "";       // "" = 전체
+  let sortMode    = _params.get("sort") || "default"; // "default" | "recent" | "sector"
+  let sectorFilter = _params.get("sector") || "";     // "" = 전체
+  if (_params.get("q")) q.value = _params.get("q");
 
   function latestDate(c) {
     const dates = (c.cards || []).map(k => k.date).filter(Boolean);
@@ -146,10 +160,16 @@
     allSortBtns.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     filter();
+    updateUrl();
   }
   btnDefault.addEventListener("click", () => setSort("default", btnDefault));
   btnRecent.addEventListener("click",  () => setSort("recent",  btnRecent));
   btnSector.addEventListener("click",  () => setSort("sector",  btnSector));
+
+  // URL에서 복원된 정렬 버튼 활성화
+  const sortBtnMap = { default: btnDefault, recent: btnRecent, sector: btnSector };
+  (sortBtnMap[sortMode] || btnDefault).classList.add("active");
+  allSortBtns.filter(b => b !== (sortBtnMap[sortMode] || btnDefault)).forEach(b => b.classList.remove("active"));
 
   // ── 섹터 칩 ──────────────────────────────────────────
   const CHIP_COLORS = [
@@ -189,6 +209,7 @@
       sectorBar.querySelectorAll(".sector-chip").forEach(ch => ch.classList.remove("active"));
       all.classList.add("active");
       filter();
+      updateUrl();
     });
     sectorBar.appendChild(all);
 
@@ -197,18 +218,24 @@
       btn.className = "sector-chip";
       btn.textContent = sec;
       applyChipColor(btn, sectorColorMap[sec]);
+      // URL에서 복원된 섹터 활성화
+      if (sec === sectorFilter) {
+        btn.classList.add("active");
+        all.classList.remove("active");
+      }
       btn.addEventListener("click", () => {
         sectorFilter = sec;
         sectorBar.querySelectorAll(".sector-chip").forEach(ch => ch.classList.remove("active"));
         btn.classList.add("active");
         filter();
+        updateUrl();
       });
       sectorBar.appendChild(btn);
     });
   }
   buildSectorChips();
 
-  q.addEventListener("input", filter);
+  q.addEventListener("input", () => { filter(); updateUrl(); });
   renderWithSectors(companies);
 
   function escapeHtml(s) {
