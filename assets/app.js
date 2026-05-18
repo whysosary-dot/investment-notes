@@ -33,15 +33,11 @@
     }
   } catch (_) {}
 
-  function isRecentlyUpdated(c, days) {
-    days = days || 7;
-    var now = new Date();
-    var cutoff = new Date(now - days * 86400000);
+  function isRecentlyUpdated(c) {
+    var cutoff = new Date(Date.now() - 86400000); // 24시간
     var dates = (c.cards || []).map(function(k) { return k.date; }).filter(Boolean).map(function(d) { return new Date(d); });
     var maxCard = dates.length ? new Date(Math.max.apply(null, dates)) : null;
-    if (maxCard && maxCard >= cutoff) return true;
-    if (c.created_at && new Date(c.created_at) >= cutoff) return true;
-    return false;
+    return !!(maxCard && maxCard >= cutoff);
   }
 
   function render(list) {
