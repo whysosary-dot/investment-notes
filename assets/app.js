@@ -20,7 +20,6 @@
   if (updatedEl && data.last_updated) {
     updatedEl.textContent = "마지막 업데이트: " + data.last_updated;
   }
-  // try to set a sensible repo link if served from github pages
   try {
     const host = location.host;
     const path = location.pathname.split("/").filter(Boolean);
@@ -33,13 +32,64 @@
     }
   } catch (_) {}
 
+  // ── sessionStorage 상태 저장/복원 ───────────────────
+  const STATE_KEY = "inv_list_state";
+
+  function isBackForward() {
+    try {
+      const nav = performance.getEntriesByType("navigation");
+      if (nav.length) return nav[0].type === "back_forward";
+    } catch (_) {}
+    try { return performance.navigation.type === 2; } catch (_) {}
+    return false;
+  }
+
+  function saveState() {
+    try {
+      sessionStorage.setItem(STATE_KEY, JSON.stringify({
+        sort: sortMode,
+        sector: sectorFilter,
+        q: q.value || "",
+        scrollY: window.scrollY
+      }));
+    } catch (_) {}
+  }
+
+  function loadSavedState() {
+    try {
+      return JSON.parse(sessionStorage.getItem(STATE_KEY) || "null");
+    } catch (_) { return null; }
+  }
+
+  // ── 뒤로가기 시 복원할 초기값 결정 ─────────────────
+  const saved = isBackForward() ? loadSavedState() : null;
+
+  // ── 정렬 & 섹터 필터 ────────────────────────────────
+  let sortMode     = (saved && saved.sort)   || "default";
+  let sectorFilter = (saved && saved.sector) || "";
+  if (saved && saved.q) q.value = saved.q;
+
+  // ── 유틸 ─────────────────────────────────────────────
   function isRecentlyUpdated(c) {
-    var cutoff = new Date(Date.now() - 86400000); // 24시간
+    var cutoff = new Date(Date.now() - 86400000);
     var dates = (c.cards || []).map(function(k) { return k.date; }).filter(Boolean).map(function(d) { return new Date(d); });
     var maxCard = dates.length ? new Date(Math.max.apply(null, dates)) : null;
     return !!(maxCard && maxCard >= cutoff);
   }
 
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, ch => ({
+      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+    }[ch]));
+  }
+
+  function latestDate(c) {
+    const dates = (c.cards || []).map(k => k.date).filter(Boolean);
+    if (c.created_at) dates.push(c.created_at);
+    return dates.length ? dates.slice().sort().pop() : "0000-00-00";
+  }
+
+  // ── 렌더 ─────────────────────────────────────────────
   function render(list) {
     grid.innerHTML = "";
     if (!list.length) {
@@ -65,30 +115,6 @@
     counter.textContent = list.length + " / " + companies.length;
   }
 
-  // ── URL 상태 저장/복원 ──────────────────────────────
-  const _params = new URLSearchParams(location.search);
-
-  function updateUrl() {
-    const p = new URLSearchParams();
-    if (sortMode !== "default") p.set("sort", sortMode);
-    if (sectorFilter) p.set("sector", sectorFilter);
-    const qv = (q.value || "").trim();
-    if (qv) p.set("q", qv);
-    const qs = p.toString();
-    history.replaceState(null, "", qs ? "?" + qs : location.pathname);
-  }
-
-  // ── 정렬 & 섹터 필터 ────────────────────────────────
-  let sortMode    = _params.get("sort") || "default"; // "default" | "recent" | "sector"
-  let sectorFilter = _params.get("sector") || "";     // "" = 전체
-  if (_params.get("q")) q.value = _params.get("q");
-
-  function latestDate(c) {
-    const dates = (c.cards || []).map(k => k.date).filter(Boolean);
-    if (c.created_at) dates.push(c.created_at);
-    return dates.length ? dates.slice().sort().pop() : "0000-00-00";
-  }
-
   function sorted(list) {
     if (sortMode === "recent") {
       return list.slice().sort((a, b) => latestDate(b).localeCompare(latestDate(a)));
@@ -103,7 +129,6 @@
     return list;
   }
 
-  // 섹터순일 때 섹터 구분선 포함 렌더링
   function renderWithSectors(list) {
     if (sortMode !== "sector" || sectorFilter) { render(sorted(list)); return; }
     grid.innerHTML = "";
@@ -147,6 +172,7 @@
     }) : companies;
     if (sectorFilter) base = base.filter(c => (c.sector || "") === sectorFilter);
     renderWithSectors(base);
+    saveState(); // 상태 변경마다 저장
   }
 
   // ── 정렬 버튼 ────────────────────────────────────────
@@ -160,16 +186,15 @@
     allSortBtns.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     filter();
-    updateUrl();
   }
   btnDefault.addEventListener("click", () => setSort("default", btnDefault));
   btnRecent.addEventListener("click",  () => setSort("recent",  btnRecent));
   btnSector.addEventListener("click",  () => setSort("sector",  btnSector));
 
-  // URL에서 복원된 정렬 버튼 활성화
+  // 복원된 정렬 버튼 활성화
   const sortBtnMap = { default: btnDefault, recent: btnRecent, sector: btnSector };
+  allSortBtns.forEach(b => b.classList.remove("active"));
   (sortBtnMap[sortMode] || btnDefault).classList.add("active");
-  allSortBtns.filter(b => b !== (sortBtnMap[sortMode] || btnDefault)).forEach(b => b.classList.remove("active"));
 
   // ── 섹터 칩 ──────────────────────────────────────────
   const CHIP_COLORS = [
@@ -202,45 +227,42 @@
   function buildSectorChips() {
     sectorBar.innerHTML = "";
     const all = document.createElement("button");
-    all.className = "sector-chip active";
+    all.className = "sector-chip" + (sectorFilter ? "" : " active");
     all.textContent = "전체";
     all.addEventListener("click", () => {
       sectorFilter = "";
       sectorBar.querySelectorAll(".sector-chip").forEach(ch => ch.classList.remove("active"));
       all.classList.add("active");
       filter();
-      updateUrl();
     });
     sectorBar.appendChild(all);
 
     sectors.forEach(sec => {
       const btn = document.createElement("button");
-      btn.className = "sector-chip";
+      btn.className = "sector-chip" + (sec === sectorFilter ? " active" : "");
       btn.textContent = sec;
       applyChipColor(btn, sectorColorMap[sec]);
-      // URL에서 복원된 섹터 활성화
-      if (sec === sectorFilter) {
-        btn.classList.add("active");
-        all.classList.remove("active");
-      }
       btn.addEventListener("click", () => {
         sectorFilter = sec;
         sectorBar.querySelectorAll(".sector-chip").forEach(ch => ch.classList.remove("active"));
         btn.classList.add("active");
         filter();
-        updateUrl();
       });
       sectorBar.appendChild(btn);
     });
   }
   buildSectorChips();
 
-  q.addEventListener("input", () => { filter(); updateUrl(); });
-  renderWithSectors(companies);
+  q.addEventListener("input", filter);
 
-  function escapeHtml(s) {
-    return String(s).replace(/[&<>"']/g, ch => ({
-      "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
-    }[ch]));
+  // ── 초기 렌더 & 스크롤 복원 ─────────────────────────
+  filter();
+  if (saved && saved.scrollY) {
+    // DOM 그려진 후 스크롤 복원
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        window.scrollTo(0, saved.scrollY);
+      });
+    });
   }
 })();
