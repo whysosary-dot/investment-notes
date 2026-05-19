@@ -82,11 +82,13 @@
   function isRecentlyUpdated(c) {
     // 날짜 문자열(YYYY-MM-DD) 직접 비교 — UTC 파싱 시차 문제 방지
     // 어제 로컬 날짜 이상이면 초록불 (오늘 + 어제 모두 유지)
-    var yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    var cutoff = yesterday.getFullYear() + "-" +
-      String(yesterday.getMonth() + 1).padStart(2, "0") + "-" +
-      String(yesterday.getDate()).padStart(2, "0");
+    // UTC/KST 시차(+9h) 보정: 배시 샌드박스는 UTC 기준 날짜를 찍으므로
+    // 브라우저(KST) 기준 2일 전까지를 커트오프로 잡아 다음 태스크 실행 전까지 유지
+    var d = new Date();
+    d.setDate(d.getDate() - 2);
+    var cutoff = d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0");
     var dates = (c.cards || []).map(function(k) { return k.date; }).filter(Boolean);
     var maxDate = dates.length ? dates.slice().sort().pop() : null;
     return !!(maxDate && maxDate >= cutoff);
