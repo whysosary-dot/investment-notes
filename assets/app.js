@@ -80,10 +80,16 @@
 
   // ── 유틸 ─────────────────────────────────────────────
   function isRecentlyUpdated(c) {
-    var cutoff = new Date(Date.now() - 86400000);
-    var dates = (c.cards || []).map(function(k) { return k.date; }).filter(Boolean).map(function(d) { return new Date(d); });
-    var maxCard = dates.length ? new Date(Math.max.apply(null, dates)) : null;
-    return !!(maxCard && maxCard >= cutoff);
+    // 날짜 문자열(YYYY-MM-DD) 직접 비교 — UTC 파싱 시차 문제 방지
+    // 어제 로컬 날짜 이상이면 초록불 (오늘 + 어제 모두 유지)
+    var yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    var cutoff = yesterday.getFullYear() + "-" +
+      String(yesterday.getMonth() + 1).padStart(2, "0") + "-" +
+      String(yesterday.getDate()).padStart(2, "0");
+    var dates = (c.cards || []).map(function(k) { return k.date; }).filter(Boolean);
+    var maxDate = dates.length ? dates.slice().sort().pop() : null;
+    return !!(maxDate && maxDate >= cutoff);
   }
 
   function escapeHtml(s) {
