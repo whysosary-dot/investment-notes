@@ -82,16 +82,30 @@
    ```
 7. 푸시 성공 후, 사용자에게 GitHub Pages URL과 새 카드의 위치를 알려줌.
 
-## 거시경제(Macro) 카드 처리 (2026-05-19 추가)
+## 기업 탭 vs 산업 탭 (2026-05-19 추가)
 
-금리·채권·환율·CPI·PPI·PMI·FOMC·경기지표 등 특정 종목에 귀속되지 않는 거시경제 자료는
-`id: "macro-economy"` entry에 카드로 추가한다.
+페이지에는 **기업** 탭과 **산업** 탭이 분리되어 있다.
+- `"type": "company"` (또는 type 미지정) → 기업 탭
+- `"type": "industry"` → 산업 탭
 
-- **식별 키워드**: 금리, 기준금리, 국채, 채권, 환율, 달러, CPI, PPI, PMI, GDP, FOMC, 연준, Fed,
-  인플레이션, 디플레이션, 경기침체, 무역수지, 고용지표, ISM, 소비자심리 등
-- entry가 이미 존재하므로 새로 만들지 말 것 (`id: "macro-economy"` 에 카드만 append).
-- 차트 원칙 동일 적용 (금리 추이 → `type: "bar"` 또는 `type: "line"` 스타일로 bar 활용).
-- `tags`에 지표명·국가·연준/한은 키워드 풍부하게.
+### 산업 탭 entry 목록
+
+| id | name | 설명 |
+|---|---|---|
+| `macro-economy` | 거시경제 | 금리·채권·환율·CPI·FOMC 등 매크로 지표 |
+| `semiconductor` | 반도체 | 메모리·HBM·파운드리·반도체장비 업황 |
+| `energy` | 에너지 | 정유·LNG·원전·전력·유틸리티 |
+| `biotech` | 바이오/헬스케어 | 제약·의료기기·임상·CMO |
+| `it-platform` | IT/플랫폼 | AI·클라우드·SaaS·빅테크 |
+| `shipbuilding-defense` | 조선/방산 | LNG선·K방산 수출 |
+| `consumer` | 소비재/뷰티 | K뷰티·식품·내수 소비 |
+
+### 산업 카드 추가 규칙
+
+- **특정 종목 귀속 안 되는 자료** (섹터 전망, 업황 리포트, 수급/가격 데이터 등) → 해당 산업 entry에만 추가.
+- **기업 카드와 중복 허용**: 예) 반도체 수급 발표가 SK하이닉스 카드에도, `semiconductor` 카드에도 들어가면 양쪽 모두 추가.
+- **거시경제 자료** (금리, 채권, 환율, CPI, PPI, PMI, FOMC, GDP, 고용지표 등) → `macro-economy`에만.
+- 새 산업 카테고리가 필요하면 `"type": "industry"` entry를 새로 만들어도 됨.
 
 ## 새 기업 entry 템플릿
 

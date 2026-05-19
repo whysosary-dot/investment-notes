@@ -1,11 +1,11 @@
-// index.html — 회사 목록 렌더링
+// index.html — 기업/산업 탭 렌더링
 (async function () {
-  const grid = document.getElementById("grid");
-  const empty = document.getElementById("empty");
-  const counter = document.getElementById("counter");
+  const grid      = document.getElementById("grid");
+  const empty     = document.getElementById("empty");
+  const counter   = document.getElementById("counter");
   const updatedEl = document.getElementById("updated");
-  const q = document.getElementById("q");
-  const repolink = document.getElementById("repolink");
+  const q         = document.getElementById("q");
+  const repolink  = document.getElementById("repolink");
 
   let data;
   try {
@@ -16,7 +16,10 @@
     return;
   }
 
-  const companies = data.companies || [];
+  const allEntries  = data.companies || [];
+  const companyList = allEntries.filter(c => !c.type || c.type === "company");
+  const industryList = allEntries.filter(c => c.type === "industry");
+
   if (updatedEl && data.last_updated) {
     updatedEl.textContent = "마지막 업데이트: " + data.last_updated;
   }
@@ -33,7 +36,9 @@
   } catch (_) {}
 
   // ── sessionStorage 상태 저장/복원 ───────────────────
-  const STATE_KEY = "inv_list_state";
+  const KEY_TAB = "inv_tab";
+  const KEY_CO  = "inv_state_co";
+  const KEY_IND = "inv_state_ind";
 
   function isBackForward() {
     try {
@@ -44,30 +49,34 @@
     return false;
   }
 
-  function saveState() {
+  const isBF = isBackForward();
+
+  function loadTabState(key) {
+    try { return JSON.parse(sessionStorage.getItem(key) || "null"); } catch (_) { return null; }
+  }
+
+  function saveTabState() {
+    const key = activeTab === "industry" ? KEY_IND : KEY_CO;
     try {
-      sessionStorage.setItem(STATE_KEY, JSON.stringify({
-        sort: sortMode,
-        sector: sectorFilter,
-        q: q.value || "",
-        scrollY: window.scrollY
+      sessionStorage.setItem(key, JSON.stringify({
+        sort: sortMode, sector: sectorFilter,
+        q: q.value || "", scrollY: window.scrollY
       }));
     } catch (_) {}
   }
 
-  function loadSavedState() {
-    try {
-      return JSON.parse(sessionStorage.getItem(STATE_KEY) || "null");
-    } catch (_) { return null; }
-  }
+  // ── 탭 초기값 ──────────────────────────────────────
+  let activeTab = (isBF && sessionStorage.getItem(KEY_TAB)) || "company";
 
-  // ── 뒤로가기 시 복원할 초기값 결정 ─────────────────
-  const saved = isBackForward() ? loadSavedState() : null;
+  const savedCo  = isBF ? loadTabState(KEY_CO)  : null;
+  const savedInd = isBF ? loadTabState(KEY_IND) : null;
+  const savedNow = activeTab === "industry" ? savedInd : savedCo;
 
-  // ── 정렬 & 섹터 필터 ────────────────────────────────
-  let sortMode     = (saved && saved.sort)   || "default";
-  let sectorFilter = (saved && saved.sector) || "";
-  if (saved && saved.q) q.value = saved.q;
+  let sortMode     = (savedNow && savedNow.sort)   || "default";
+  let sectorFilter = (savedNow && savedNow.sector) || "";
+  if (savedNow && savedNow.q) q.value = savedNow.q;
+
+  let companies = activeTab === "industry" ? industryList : companyList;
 
   // ── 유틸 ─────────────────────────────────────────────
   function isRecentlyUpdated(c) {
@@ -103,7 +112,7 @@
       a.className = "company";
       a.href = "company.html?id=" + encodeURIComponent(c.id);
       const cardCount = (c.cards || []).length;
-      const dot = isRecentlyUpdated(c) ? '<span class="updated-dot" title="최근 7일 내 업데이트"></span>' : '';
+      const dot = isRecentlyUpdated(c) ? '<span class="updated-dot" title="최근 1일 내 업데이트"></span>' : '';
       a.innerHTML =
         '<h2 class="name">' + dot + escapeHtml(c.name) + '</h2>' +
         '<p class="meta">' +
@@ -150,7 +159,7 @@
       const a = document.createElement("a");
       a.className = "company";
       a.href = "company.html?id=" + encodeURIComponent(c.id);
-      const dot = isRecentlyUpdated(c) ? '<span class="updated-dot" title="최근 7일 내 업데이트"></span>' : '';
+      const dot = isRecentlyUpdated(c) ? '<span class="updated-dot" title="최근 1일 내 업데이트"></span>' : '';
       a.innerHTML =
         '<h2 class="name">' + dot + escapeHtml(c.name) + '</h2>' +
         '<p class="meta">' + [c.ticker, c.sector].filter(Boolean).map(escapeHtml).join(" · ") + '</p>' +
@@ -172,14 +181,15 @@
     }) : companies;
     if (sectorFilter) base = base.filter(c => (c.sector || "") === sectorFilter);
     renderWithSectors(base);
-    saveState(); // 상태 변경마다 저장
+    saveTabState();
   }
 
   // ── 정렬 버튼 ────────────────────────────────────────
-  const btnDefault = document.getElementById("sort-default");
-  const btnRecent  = document.getElementById("sort-recent");
-  const btnSector  = document.getElementById("sort-sector");
+  const btnDefault  = document.getElementById("sort-default");
+  const btnRecent   = document.getElementById("sort-recent");
+  const btnSector   = document.getElementById("sort-sector");
   const allSortBtns = [btnDefault, btnRecent, btnSector];
+  const sortBtnMap  = { default: btnDefault, recent: btnRecent, sector: btnSector };
 
   function setSort(mode, btn) {
     sortMode = mode;
@@ -191,11 +201,6 @@
   btnRecent.addEventListener("click",  () => setSort("recent",  btnRecent));
   btnSector.addEventListener("click",  () => setSort("sector",  btnSector));
 
-  // 복원된 정렬 버튼 활성화
-  const sortBtnMap = { default: btnDefault, recent: btnRecent, sector: btnSector };
-  allSortBtns.forEach(b => b.classList.remove("active"));
-  (sortBtnMap[sortMode] || btnDefault).classList.add("active");
-
   // ── 섹터 칩 ──────────────────────────────────────────
   const CHIP_COLORS = [
     "#378ADD", "#0F6E56", "#534AB7", "#D85A30",
@@ -206,9 +211,14 @@
   ];
 
   const sectorBar = document.getElementById("sector-bar");
-  const sectors = [...new Set(companies.map(c => c.sector).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
-  const sectorColorMap = {};
-  sectors.forEach((sec, i) => { sectorColorMap[sec] = CHIP_COLORS[i % CHIP_COLORS.length]; });
+  let sectors = [];
+  let sectorColorMap = {};
+
+  function buildSectors() {
+    sectors = [...new Set(companies.map(c => c.sector).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
+    sectorColorMap = {};
+    sectors.forEach((sec, i) => { sectorColorMap[sec] = CHIP_COLORS[i % CHIP_COLORS.length]; });
+  }
 
   function hexToRgb(hex) {
     const r = parseInt(hex.slice(1,3),16);
@@ -251,27 +261,66 @@
       sectorBar.appendChild(btn);
     });
   }
-  buildSectorChips();
 
-  q.addEventListener("input", filter);
+  // ── 탭 전환 ──────────────────────────────────────────
+  const tabBtns = document.querySelectorAll(".tab-btn");
+
+  function switchTab(tab) {
+    activeTab = tab;
+    try { sessionStorage.setItem(KEY_TAB, tab); } catch (_) {}
+    companies = tab === "industry" ? industryList : companyList;
+
+    // 해당 탭 저장 상태 복원
+    const saved = loadTabState(tab === "industry" ? KEY_IND : KEY_CO);
+    sortMode     = (saved && saved.sort)   || "default";
+    sectorFilter = (saved && saved.sector) || "";
+    q.value      = (saved && saved.q)      || "";
+
+    // 정렬 버튼 UI
+    allSortBtns.forEach(b => b.classList.remove("active"));
+    (sortBtnMap[sortMode] || btnDefault).classList.add("active");
+
+    // 탭 버튼 UI
+    tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === tab));
+
+    buildSectors();
+    buildSectorChips();
+    filter();
+    window.scrollTo(0, 0);
+  }
+
+  tabBtns.forEach(btn => {
+    btn.addEventListener("click", () => switchTab(btn.dataset.tab));
+  });
 
   // ── 스크롤 위치 실시간 저장 ──────────────────────────
   let _scrollTimer;
   window.addEventListener("scroll", () => {
     clearTimeout(_scrollTimer);
-    _scrollTimer = setTimeout(saveState, 80);
+    _scrollTimer = setTimeout(saveTabState, 80);
   }, { passive: true });
 
   // ── 카드 클릭 직전 최종 저장 ─────────────────────────
   grid.addEventListener("click", e => {
-    if (e.target.closest("a.company")) saveState();
+    if (e.target.closest("a.company")) saveTabState();
   }, true);
 
-  // ── 초기 렌더 & 스크롤 복원 ─────────────────────────
+  q.addEventListener("input", filter);
+
+  // ── 초기 탭 UI ───────────────────────────────────────
+  tabBtns.forEach(b => b.classList.toggle("active", b.dataset.tab === activeTab));
+
+  // ── 초기 정렬 버튼 UI ────────────────────────────────
+  allSortBtns.forEach(b => b.classList.remove("active"));
+  (sortBtnMap[sortMode] || btnDefault).classList.add("active");
+
+  // ── 초기 섹터 빌드 & 렌더 ────────────────────────────
+  buildSectors();
+  buildSectorChips();
   filter();
-  if (saved && saved.scrollY) {
-    const target = saved.scrollY;
-    // rAF × 2 → 50 ms → 200 ms 순으로 재시도 (레이아웃 완료 시점 불확실)
+
+  if (savedNow && savedNow.scrollY) {
+    const target = savedNow.scrollY;
     const tryScroll = () => window.scrollTo(0, target);
     requestAnimationFrame(() => requestAnimationFrame(tryScroll));
     setTimeout(tryScroll, 50);

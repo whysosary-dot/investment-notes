@@ -51,6 +51,33 @@ body {
 }
 .topbar .back:hover { text-decoration: underline; }
 
+/* ── 탭 바 ─────────────────────────────────────────── */
+.tab-bar {
+  display: flex;
+  gap: 0;
+  margin: 20px 0 0;
+  border-bottom: 1px solid var(--line);
+}
+.tab-btn {
+  padding: 10px 22px;
+  background: transparent;
+  color: var(--muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color .15s, border-color .15s;
+  letter-spacing: -.01em;
+}
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+  font-weight: 600;
+}
+.tab-btn:hover:not(.active) { color: var(--text); }
+
 .toolbar {
   display: flex; align-items: center; flex-wrap: wrap; gap: 8px;
   margin: 22px 0 18px;
