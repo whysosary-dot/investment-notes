@@ -143,7 +143,7 @@
         return sa.localeCompare(sb, "ko") || a.name.localeCompare(b.name, "ko");
       });
     }
-    return list;
+    return list.slice().sort((a, b) => a.name.localeCompare(b.name, "ko", { sensitivity: "base" }));
   }
 
   function renderWithSectors(list) {
