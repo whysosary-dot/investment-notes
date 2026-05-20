@@ -25,7 +25,12 @@
     empty.hidden = false;
     return;
   }
-  nameEl.textContent = company.name;
+  if (company.ticker) {
+    const naverUrl = "https://m.stock.naver.com/domestic/stock/" + encodeURIComponent(company.ticker) + "/total";
+    nameEl.innerHTML = '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" class="name-link">' + escapeHtml(company.name) + ' <span class="name-link-icon">↗</span></a>';
+  } else {
+    nameEl.textContent = company.name;
+  }
   metaEl.textContent = [company.ticker, company.sector].filter(Boolean).join(" · ");
 
   const cards = (company.cards || []).slice().sort((a, b) => {

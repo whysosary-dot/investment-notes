@@ -50,6 +50,14 @@ body {
   color: var(--accent); text-decoration: none; font-size: 13px;
 }
 .topbar .back:hover { text-decoration: underline; }
+.topbar h1 .name-link {
+  color: inherit; text-decoration: none;
+  border-bottom: 1.5px solid rgba(128,128,128,0.35);
+  padding-bottom: 1px;
+  transition: border-color .15s;
+}
+.topbar h1 .name-link:hover { border-color: var(--accent); color: var(--accent); }
+.topbar h1 .name-link-icon { font-size: 18px; opacity: 0.55; }
 
 /* ── 탭 바 ─────────────────────────────────────────── */
 .tab-bar {
