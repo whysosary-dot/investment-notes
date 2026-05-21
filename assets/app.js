@@ -72,7 +72,7 @@
   const savedInd = isBF ? loadTabState(KEY_IND) : null;
   const savedNow = activeTab === "industry" ? savedInd : savedCo;
 
-  let sortMode     = (savedNow && savedNow.sort)   || "default";
+  let sortMode     = (savedNow && savedNow.sort)   || "recent";
   let sectorFilter = (savedNow && savedNow.sector) || "";
   if (savedNow && savedNow.q) q.value = savedNow.q;
 
@@ -80,8 +80,7 @@
 
   // ── 유틸 ─────────────────────────────────────────────
   function isRecentlyUpdated(c) {
-    // 날짜 문자열(YYYY-MM-DD) 직접 비교 — UTC 파싱 시차 문제 방지
-    // 어제 로컬 날짜 이상이면 초록불 (오늘 + 어제 모두 유지)
+    // added_at(카드 추가 시점) 기준으로 초록불 표시 — date(원본 자료 날짜)와 분리
     // UTC/KST 시차(+9h) 보정: 배시 샌드박스는 UTC 기준 날짜를 찍으므로
     // 브라우저(KST) 기준 2일 전까지를 커트오프로 잡아 다음 태스크 실행 전까지 유지
     var d = new Date();
@@ -89,7 +88,7 @@
     var cutoff = d.getFullYear() + "-" +
       String(d.getMonth() + 1).padStart(2, "0") + "-" +
       String(d.getDate()).padStart(2, "0");
-    var dates = (c.cards || []).map(function(k) { return k.date; }).filter(Boolean);
+    var dates = (c.cards || []).map(function(k) { return k.added_at || k.date; }).filter(Boolean);
     var maxDate = dates.length ? dates.slice().sort().pop() : null;
     return !!(maxDate && maxDate >= cutoff);
   }
@@ -101,7 +100,7 @@
   }
 
   function latestDate(c) {
-    const dates = (c.cards || []).map(k => k.date).filter(Boolean);
+    const dates = (c.cards || []).map(k => k.added_at || k.date).filter(Boolean);
     if (c.created_at) dates.push(c.created_at);
     return dates.length ? dates.slice().sort().pop() : "0000-00-00";
   }
@@ -280,7 +279,7 @@
 
     // 해당 탭 저장 상태 복원
     const saved = loadTabState(tab === "industry" ? KEY_IND : KEY_CO);
-    sortMode     = (saved && saved.sort)   || "default";
+    sortMode     = (saved && saved.sort)   || "recent";
     sectorFilter = (saved && saved.sector) || "";
     q.value      = (saved && saved.q)      || "";
 
