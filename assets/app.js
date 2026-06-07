@@ -217,9 +217,39 @@
     "#0E6655", "#2E4057"
   ];
 
-  const sectorBar = document.getElementById("sector-bar");
+  const sectorBar    = document.getElementById("sector-bar");
+  const sectorWrap   = document.getElementById("sector-wrap");
+  const sectorToggle = document.getElementById("sector-toggle");
   let sectors = [];
   let sectorColorMap = {};
+
+  // ── 섹터 칩 접기/펼치기 ──────────────────────────────
+  const KEY_CHIPS = "inv_chips_open";
+  let chipsOpen = false;
+  try { chipsOpen = localStorage.getItem(KEY_CHIPS) === "1"; } catch (_) {}
+
+  function updateChipsUI() {
+    sectorWrap.classList.toggle("empty", sectorBar.childElementCount === 0);
+    // 접힌 상태 기준으로 넘침 여부 측정
+    sectorBar.classList.add("collapsed");
+    const needsToggle = sectorBar.scrollHeight > sectorBar.clientHeight + 1;
+    sectorBar.classList.toggle("collapsed", !chipsOpen);
+    sectorToggle.hidden = !needsToggle;
+    sectorToggle.textContent = chipsOpen ? "접기 ▴" : "펼치기 ▾";
+    sectorToggle.setAttribute("aria-expanded", chipsOpen ? "true" : "false");
+  }
+
+  sectorToggle.addEventListener("click", () => {
+    chipsOpen = !chipsOpen;
+    try { localStorage.setItem(KEY_CHIPS, chipsOpen ? "1" : "0"); } catch (_) {}
+    updateChipsUI();
+  });
+
+  let _chipResizeTimer;
+  window.addEventListener("resize", () => {
+    clearTimeout(_chipResizeTimer);
+    _chipResizeTimer = setTimeout(updateChipsUI, 120);
+  });
 
   function buildSectors() {
     sectors = [...new Set(companies.map(c => c.sector).filter(Boolean))].sort((a, b) => a.localeCompare(b, "ko"));
@@ -267,6 +297,8 @@
       });
       sectorBar.appendChild(btn);
     });
+
+    updateChipsUI();
   }
 
   // ── 탭 전환 ──────────────────────────────────────────

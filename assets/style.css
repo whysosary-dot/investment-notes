@@ -114,11 +114,29 @@ body {
 .sort-btn.active { border-color: var(--accent); color: var(--accent); }
 .sort-btn:hover { border-color: var(--accent); color: var(--accent); }
 
-.sector-bar {
-  display: flex; flex-wrap: wrap; gap: 6px;
+.sector-wrap {
+  display: flex; align-items: flex-start; gap: 6px;
   margin: 0 0 16px;
 }
-.sector-bar:empty { margin: 0; }
+.sector-wrap.empty { margin: 0; }
+.sector-bar {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  flex: 1; min-width: 0;
+}
+.sector-bar.collapsed {
+  max-height: 30px; overflow: hidden;
+}
+.sector-toggle {
+  flex-shrink: 0;
+  padding: 5px 12px;
+  background: var(--panel-2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 12px; cursor: pointer; white-space: nowrap;
+  transition: border-color .15s, color .15s;
+}
+.sector-toggle:hover { border-color: var(--accent); color: var(--accent); }
 .sector-chip {
   padding: 5px 12px;
   background: var(--chip-bg, var(--panel-2));
