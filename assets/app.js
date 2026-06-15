@@ -20,205 +20,6 @@
   const companyList = allEntries.filter(c => !c.type || c.type === "company");
   const industryList = allEntries.filter(c => c.type === "industry");
 
-  // ── 즐겨찾기 모듈 ───────────────────────────────────
-  const FAV_KEY   = "inv_favorites";       // 현재 작업 집합
-  const FAV_BASE  = "inv_favorites_base";  // 마지막 동기화 스냅샷
-  const TOKEN_KEY = "inv_gh_token";        // GitHub PAT (이 브라우저에만)
-
-  const favToolbar    = document.getElementById("fav-toolbar");
-  const favPushBtn    = document.getElementById("fav-push");
-  const favStatus     = document.getElementById("fav-status");
-  const favTokenTog   = document.getElementById("fav-token-toggle");
-  const favTokenRow   = document.getElementById("fav-token-row");
-  const favTokenInput = document.getElementById("fav-token-input");
-  const favTokenSave  = document.getElementById("fav-token-save");
-  const favTokenClear = document.getElementById("fav-token-clear");
-  const favTabBtn     = document.querySelector('.tab-btn[data-tab="favorites"]');
-
-  let favSet  = new Set();
-  let favBase = new Set();
-
-  function readSet(key) {
-    try {
-      const raw = localStorage.getItem(key);
-      if (raw == null) return null;
-      const arr = JSON.parse(raw);
-      return Array.isArray(arr) ? new Set(arr) : null;
-    } catch (_) { return null; }
-  }
-  function writeSet(key, set) {
-    try { localStorage.setItem(key, JSON.stringify([...set].sort())); } catch (_) {}
-  }
-  function setEq(a, b) {
-    if (a.size !== b.size) return false;
-    for (const v of a) if (!b.has(v)) return false;
-    return true;
-  }
-  function persistFav() { writeSet(FAV_KEY, favSet); writeSet(FAV_BASE, favBase); }
-  function favDirty() { return !setEq(favSet, favBase); }
-
-  function getToken() { try { return localStorage.getItem(TOKEN_KEY) || ""; } catch (_) { return ""; } }
-
-  function ghRepo() {
-    try {
-      const host = location.host;
-      const parts = location.pathname.split("/").filter(Boolean);
-      if (host.endsWith("github.io") && parts.length > 0) {
-        return { owner: host.split(".")[0], repo: parts[0] };
-      }
-    } catch (_) {}
-    return { owner: "whysosary-dot", repo: "investment-notes" }; // 로컬/폴백
-  }
-
-  function b64utf8(str) { return btoa(unescape(encodeURIComponent(str))); }
-
-  async function loadFavorites() {
-    let remote = [];
-    try {
-      const r = await fetch("data/favorites.json?ts=" + Date.now());
-      if (r.ok) { const j = await r.json(); if (Array.isArray(j.favorites)) remote = j.favorites; }
-    } catch (_) {}
-    const R = new Set(remote);
-    let W = readSet(FAV_KEY);
-    let B = readSet(FAV_BASE);
-    if (!W) {                       // 이 기기 첫 방문 → 원격 채택
-      W = new Set(R); B = new Set(R);
-    } else if (B && setEq(W, B)) {  // 로컬 미푸시 변경 없음 → 원격 업데이트 채택
-      W = new Set(R); B = new Set(R);
-    } else {                        // 로컬 변경 보존 + 원격 변경 병합
-      B = B || new Set();
-      for (const id of R) if (!B.has(id)) W.add(id);   // 원격 추가분 반영
-      for (const id of B) if (!R.has(id)) W.delete(id); // 원격 삭제분 반영
-      B = new Set(R);
-    }
-    favSet = W; favBase = B;
-    persistFav();
-  }
-
-  function setFavStatus(msg, cls) {
-    favStatus.textContent = msg || "";
-    favStatus.className = "fav-status" + (cls ? " " + cls : "");
-  }
-
-  function updateFavUI() {
-    document.querySelectorAll(".fav-star").forEach(btn => {
-      const on = favSet.has(btn.dataset.id);
-      btn.classList.toggle("is-fav", on);
-      btn.textContent = on ? "★" : "☆";
-      btn.setAttribute("aria-pressed", on ? "true" : "false");
-      btn.title = on ? "즐겨찾기 해제" : "즐겨찾기 추가";
-    });
-    const dirty = favDirty();
-    favPushBtn.disabled = !dirty;
-    if (favTabBtn) favTabBtn.classList.toggle("dirty", dirty);
-    if (activeTab === "favorites" && !favStatus.classList.contains("ok")
-        && !favStatus.classList.contains("err")) {
-      if (dirty) {
-        const n = symDiffCount(favSet, favBase);
-        setFavStatus("변경사항 " + n + "건 — 커밋 & 푸시 필요", "dirty");
-      } else {
-        setFavStatus("동기화됨", "");
-      }
-    }
-  }
-
-  function symDiffCount(a, b) {
-    let n = 0;
-    for (const v of a) if (!b.has(v)) n++;
-    for (const v of b) if (!a.has(v)) n++;
-    return n;
-  }
-
-  function toggleFav(id) {
-    if (favSet.has(id)) favSet.delete(id); else favSet.add(id);
-    persistFav();
-    favStatus.className = "fav-status"; // 상태 메시지 초기화(다음 updateFavUI가 갱신)
-    if (activeTab === "favorites") { companies = computeCompanies(); filter(); }
-    updateFavUI();
-  }
-
-  function starHTML(id) {
-    const on = favSet.has(id);
-    return '<button class="fav-star' + (on ? " is-fav" : "") + '" data-id="' +
-      escapeHtml(id) + '" type="button" aria-pressed="' + (on ? "true" : "false") +
-      '" title="' + (on ? "즐겨찾기 해제" : "즐겨찾기 추가") + '">' +
-      (on ? "★" : "☆") + "</button>";
-  }
-
-  async function commitPush() {
-    const token = getToken();
-    if (!token) {
-      favTokenRow.hidden = false;
-      setFavStatus("먼저 GitHub 토큰을 저장하세요", "err");
-      favTokenInput.focus();
-      return;
-    }
-    const { owner, repo } = ghRepo();
-    const path = "data/favorites.json";
-    const apiBase = "https://api.github.com/repos/" + owner + "/" + repo + "/contents/" + path;
-    const headers = {
-      "Authorization": "Bearer " + token,
-      "Accept": "application/vnd.github+json",
-      "X-GitHub-Api-Version": "2022-11-28"
-    };
-    setFavStatus("푸시 중…", "");
-    favPushBtn.disabled = true;
-    try {
-      let sha = null;
-      const getRes = await fetch(apiBase + "?ref=main", { headers });
-      if (getRes.ok) { sha = (await getRes.json()).sha; }
-      else if (getRes.status !== 404) {
-        throw new Error("조회 실패 " + getRes.status + (getRes.status === 401 ? " (토큰 무효)" : ""));
-      }
-      const payload = {
-        favorites: [...favSet].sort(),
-        updated_at: new Date().toISOString()
-      };
-      const body = {
-        message: "Update favorites (" + payload.favorites.length + "건)",
-        content: b64utf8(JSON.stringify(payload, null, 2) + "\n"),
-        branch: "main"
-      };
-      if (sha) body.sha = sha;
-      const putRes = await fetch(apiBase, { method: "PUT", headers, body: JSON.stringify(body) });
-      if (!putRes.ok) {
-        let detail = putRes.status;
-        try { const e = await putRes.json(); if (e.message) detail += " — " + e.message; } catch (_) {}
-        if (putRes.status === 401) detail += " (토큰이 유효하지 않습니다)";
-        if (putRes.status === 403 || putRes.status === 404) detail += " (repo 쓰기 권한 확인)";
-        throw new Error(String(detail));
-      }
-      favBase = new Set(favSet);
-      persistFav();
-      setFavStatus("푸시 완료 ✓ 다른 기기에서도 반영됩니다", "ok");
-      if (favTabBtn) favTabBtn.classList.remove("dirty");
-    } catch (err) {
-      setFavStatus("오류: " + (err && err.message ? err.message : err), "err");
-    } finally {
-      favPushBtn.disabled = !favDirty();
-    }
-  }
-
-  // 토큰 UI 이벤트
-  favTokenTog.addEventListener("click", () => {
-    favTokenRow.hidden = !favTokenRow.hidden;
-    if (!favTokenRow.hidden) { favTokenInput.value = ""; favTokenInput.placeholder = getToken() ? "저장된 토큰 있음 — 변경하려면 새로 입력" : "GitHub PAT (Contents: Read and write)"; }
-  });
-  favTokenSave.addEventListener("click", () => {
-    const v = favTokenInput.value.trim();
-    if (!v) { setFavStatus("토큰을 입력하세요", "err"); return; }
-    try { localStorage.setItem(TOKEN_KEY, v); } catch (_) {}
-    favTokenInput.value = "";
-    favTokenRow.hidden = true;
-    setFavStatus("토큰 저장됨 — 이제 커밋 & 푸시 가능", "ok");
-  });
-  favTokenClear.addEventListener("click", () => {
-    try { localStorage.removeItem(TOKEN_KEY); } catch (_) {}
-    favTokenInput.value = "";
-    setFavStatus("토큰 삭제됨 (이 브라우저)", "");
-  });
-  favPushBtn.addEventListener("click", commitPush);
-
   if (updatedEl && data.last_updated) {
     updatedEl.textContent = "마지막 업데이트: " + data.last_updated;
   }
@@ -238,11 +39,6 @@
   const KEY_TAB = "inv_tab";
   const KEY_CO  = "inv_state_co";
   const KEY_IND = "inv_state_ind";
-  const KEY_FAV = "inv_state_fav";
-
-  function tabStateKey(tab) {
-    return tab === "industry" ? KEY_IND : tab === "favorites" ? KEY_FAV : KEY_CO;
-  }
 
   function isBackForward() {
     try {
@@ -260,7 +56,7 @@
   }
 
   function saveTabState() {
-    const key = tabStateKey(activeTab);
+    const key = activeTab === "industry" ? KEY_IND : KEY_CO;
     try {
       sessionStorage.setItem(key, JSON.stringify({
         sort: sortMode, sector: sectorFilter,
@@ -272,7 +68,9 @@
   // ── 탭 초기값 ──────────────────────────────────────
   let activeTab = (isBF && sessionStorage.getItem(KEY_TAB)) || "company";
 
-  const savedNow = isBF ? loadTabState(tabStateKey(activeTab)) : null;
+  const savedCo  = isBF ? loadTabState(KEY_CO)  : null;
+  const savedInd = isBF ? loadTabState(KEY_IND) : null;
+  const savedNow = activeTab === "industry" ? savedInd : savedCo;
 
   let sortMode     = (savedNow && savedNow.sort)   || "recent";
   let sectorFilter = (savedNow && savedNow.sector) || "";
@@ -311,7 +109,7 @@
   function render(list) {
     grid.innerHTML = "";
     if (!list.length) {
-      empty.hidden = false; applyEmptyMsg();
+      empty.hidden = false;
       counter.textContent = "0 / " + companies.length;
       return;
     }
@@ -512,7 +310,7 @@
     companies = tab === "industry" ? industryList : companyList;
 
     // 해당 탭 저장 상태 복원
-    const saved = loadTabState(tabStateKey(tab));
+    const saved = loadTabState(tab === "industry" ? KEY_IND : KEY_CO);
     sortMode     = (saved && saved.sort)   || "recent";
     sectorFilter = (saved && saved.sector) || "";
     q.value      = (saved && saved.q)      || "";
@@ -555,16 +353,10 @@
   allSortBtns.forEach(b => b.classList.remove("active"));
   (sortBtnMap[sortMode] || btnDefault).classList.add("active");
 
-  // ── 즐겨찾기 로드(원격 동기화) 후 초기 상태 확정 ─────
-  await loadFavorites();
-  companies = computeCompanies();
-  favToolbar.hidden = activeTab !== "favorites";
-
   // ── 초기 섹터 빌드 & 렌더 ────────────────────────────
   buildSectors();
   buildSectorChips();
   filter();
-  updateFavUI();
 
   if (savedNow && savedNow.scrollY) {
     const target = savedNow.scrollY;
