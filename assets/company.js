@@ -247,13 +247,34 @@
     counter.textContent = list.length + " / " + cards.length;
   }
 
+  // 한글 음절을 첫 자음(초성)으로 변환. 예: "삼성전자" → "ㅅㅅㅈㅈ"
+  const CHOSUNG = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ",
+                   "ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+  function toChosung(str) {
+    let out = "";
+    for (const ch of String(str)) {
+      const code = ch.charCodeAt(0);
+      out += (code >= 0xAC00 && code <= 0xD7A3)
+        ? CHOSUNG[Math.floor((code - 0xAC00) / 588)] : ch;
+    }
+    return out;
+  }
+  function isChosungQuery(t) {
+    const c = t.replace(/\s+/g, "");
+    return c.length > 0 && /^[ㄱ-ㅎ]+$/.test(c);
+  }
+
   function filter() {
     const t = (q.value || "").trim().toLowerCase();
     if (!t) return render(cards);
+    const choMode = isChosungQuery(t);
+    const tCho = choMode ? t.replace(/\s+/g, "") : "";
     const out = cards.filter(k => {
       const hay = [k.title, k.date, ...(k.summary || []), ...(k.tags || [])]
         .filter(Boolean).join(" ").toLowerCase();
-      return hay.includes(t);
+      if (hay.includes(t)) return true;
+      if (choMode) return toChosung(hay).replace(/\s+/g, "").includes(tCho);
+      return false;
     });
     render(out);
   }

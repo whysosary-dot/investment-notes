@@ -99,6 +99,28 @@
     }[ch]));
   }
 
+  // ── 초성(자음) 검색 유틸 ─────────────────────────────
+  // 한글 음절(가~힣)을 첫 자음으로 변환. 예: "삼성전자" → "ㅅㅅㅈㅈ"
+  const CHOSUNG = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ",
+                   "ㅆ","ㅇ","ㅈ","ㅉ","ㅊ","ㅋ","ㅌ","ㅍ","ㅎ"];
+  function toChosung(str) {
+    let out = "";
+    for (const ch of String(str)) {
+      const code = ch.charCodeAt(0);
+      if (code >= 0xAC00 && code <= 0xD7A3) {
+        out += CHOSUNG[Math.floor((code - 0xAC00) / 588)];
+      } else {
+        out += ch;
+      }
+    }
+    return out;
+  }
+  // 질의가 자음(호환 자모)으로만 이루어졌는지 (초성 검색 모드 판별)
+  function isChosungQuery(t) {
+    const c = t.replace(/\s+/g, "");
+    return c.length > 0 && /^[ㄱ-ㅎ]+$/.test(c);
+  }
+
   function latestDate(c) {
     const dates = (c.cards || []).map(k => k.added_at || k.date).filter(Boolean);
     if (c.created_at) dates.push(c.created_at);
@@ -178,13 +200,18 @@
 
   function filter() {
     const t = (q.value || "").trim().toLowerCase();
+    const choMode = isChosungQuery(t);
+    const tCho = choMode ? t.replace(/\s+/g, "") : "";
     let base = t ? companies.filter(c => {
       const hay = [
         c.name, c.ticker, c.sector,
         ...(c.tags || []),
         ...(c.cards || []).flatMap(k => [k.title, ...(k.tags || []), ...(k.summary || [])])
       ].filter(Boolean).join(" ").toLowerCase();
-      return hay.includes(t);
+      if (hay.includes(t)) return true;
+      // 초성 검색: 질의가 자음만일 때 본문 초성열에서 매칭 (예: ㅅㅅㅈㅈ → 삼성전자)
+      if (choMode) return toChosung(hay).replace(/\s+/g, "").includes(tCho);
+      return false;
     }) : companies;
     if (sectorFilter) base = base.filter(c => (c.sector || "") === sectorFilter);
     renderWithSectors(base);
