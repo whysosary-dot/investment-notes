@@ -42,6 +42,13 @@
     });
   }
   function uid() { return Date.now() + "" + Math.floor(Math.random() * 1e6); }
+  // 변경 반영: 페이지가 제자리 갱신을 지원하면 그걸 쓰고(스크롤 유지), 아니면 전체 새로고침
+  function softRefresh() {
+    if (typeof window.__INV_PAGE_REFRESH === "function") {
+      try { window.__INV_PAGE_REFRESH(); return; } catch (_) {}
+    }
+    location.reload();
+  }
 
   // ── 설정 ─────────────────────────────────────────────
   function detectRepo() {
@@ -443,7 +450,7 @@
         setPending(ops);
         ov.remove();
         toast((isEdit ? "수정됨" : "추가됨") + " — 미푸시 " + pendingCount() + "건");
-        setTimeout(function () { location.reload(); }, 600);
+        setTimeout(softRefresh, 280);
       } catch (e) { toast(e.message || String(e), "err"); }
     });
   }
@@ -529,7 +536,7 @@
       if (!done) ops.push({ id: uid(), type: "edit_company", companyId: company.id, meta: meta });
       setPending(ops);
       ov.remove(); toast("기업 정보 수정됨 — 미푸시 " + pendingCount() + "건");
-      setTimeout(function () { location.reload(); }, 600);
+      setTimeout(softRefresh, 280);
     });
   }
 
@@ -552,7 +559,7 @@
       if (!removedPendingAdd) kept.push({ id: uid(), type: "delete_card", companyId: companyId, cardId: cardId });
       setPending(kept);
       toast("카드 삭제 예약됨 — 미푸시 " + pendingCount() + "건");
-      setTimeout(function () { location.reload(); }, 500);
+      setTimeout(softRefresh, 280);
     });
   }
   function deleteCompany(company) {

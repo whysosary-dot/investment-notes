@@ -9,36 +9,61 @@
   const metaEl = document.getElementById("company-meta");
   const q = document.getElementById("q");
 
-  let data;
-  try {
+  let data, company, cards = [];
+
+  function updateHeader() {
+    if (company.ticker) {
+      const naverUrl = "https://m.stock.naver.com/domestic/stock/" + encodeURIComponent(company.ticker) + "/total";
+      nameEl.innerHTML = '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" class="name-link">' + escapeHtml(company.name) + ' <span class="name-link-icon">↗</span></a>';
+    } else {
+      nameEl.textContent = company.name;
+    }
+    metaEl.textContent = [company.ticker, company.sector].filter(Boolean).join(" · ");
+  }
+
+  // 정렬: 자료 날짜(date) 최신순 → 같으면 추가일(added_at) 최신순
+  //       → 그래도 같으면 더 나중에 추가된 카드(배열 뒤쪽)가 앞(왼쪽)으로
+  function recomputeCards() {
+    cards = (company.cards || [])
+      .map((c, i) => ({ c, i }))
+      .sort((a, b) => {
+        const byDate = String(b.c.date || "").localeCompare(String(a.c.date || ""));
+        if (byDate !== 0) return byDate;
+        const byAdded = String(b.c.added_at || "").localeCompare(String(a.c.added_at || ""));
+        if (byAdded !== 0) return byAdded;
+        return b.i - a.i;
+      })
+      .map(x => x.c);
+  }
+
+  // 데이터(미푸시 병합 포함)를 다시 불러와 company/cards 갱신 — 재호출 가능
+  async function loadData() {
     const res = await fetch("data/companies.json?ts=" + Date.now());
     data = await res.json();
+    try { if (window.InvAdmin) window.InvAdmin.applyPending(data); } catch (_) {}
+    window.__INV_DATA = data;
+    window.__INV_COMPANY_ID = id;
+    company = (data.companies || []).find(c => c.id === id);
+    return !!company;
+  }
+
+  let found;
+  try {
+    found = await loadData();
   } catch (e) {
     cardsEl.innerHTML = '<p style="color:#c33">데이터를 불러올 수 없습니다 (' + e + ')</p>';
     return;
   }
-
-  // 로컬 미푸시 추가분(localStorage) 병합 — 다른 기기 반영은 "커밋 & 푸시"
-  try { if (window.InvAdmin) window.InvAdmin.applyPending(data); } catch (_) {}
-  window.__INV_DATA = data;
-  window.__INV_COMPANY_ID = id;
-
-  const company = (data.companies || []).find(c => c.id === id);
-  if (!company) {
+  if (!found) {
     nameEl.textContent = "기업을 찾을 수 없습니다";
     metaEl.textContent = "id=" + id;
     empty.hidden = false;
     return;
   }
-  if (company.ticker) {
-    const naverUrl = "https://m.stock.naver.com/domestic/stock/" + encodeURIComponent(company.ticker) + "/total";
-    nameEl.innerHTML = '<a href="' + naverUrl + '" target="_blank" rel="noopener noreferrer" class="name-link">' + escapeHtml(company.name) + ' <span class="name-link-icon">↗</span></a>';
-  } else {
-    nameEl.textContent = company.name;
-  }
-  metaEl.textContent = [company.ticker, company.sector].filter(Boolean).join(" · ");
+  updateHeader();
+  recomputeCards();
 
-  // 기업 수정/삭제 컨트롤
+  // 기업 수정/삭제 컨트롤 (한 번만 — 핸들러는 최신 company 를 참조)
   try {
     if (window.InvAdmin && metaEl.parentElement) {
       const coAdmin = document.createElement("div");
@@ -51,19 +76,6 @@
       coAdmin.querySelector("#iv-co-del").addEventListener("click", () => window.InvAdmin.deleteCompany(company));
     }
   } catch (_) {}
-
-  // 정렬: 자료 날짜(date) 최신순 → 같으면 추가일(added_at) 최신순
-  //       → 그래도 같으면 더 나중에 추가된 카드(배열 뒤쪽)가 앞(왼쪽)으로
-  const cards = (company.cards || [])
-    .map((c, i) => ({ c, i }))
-    .sort((a, b) => {
-      const byDate = String(b.c.date || "").localeCompare(String(a.c.date || ""));
-      if (byDate !== 0) return byDate;
-      const byAdded = String(b.c.added_at || "").localeCompare(String(a.c.added_at || ""));
-      if (byAdded !== 0) return byAdded;
-      return b.i - a.i;
-    })
-    .map(x => x.c);
 
   function drawChart(canvasId, cfg) {
     const canvas = document.getElementById(canvasId);
@@ -333,30 +345,35 @@
 
   q.addEventListener("input", filter);
 
-  // ── 색상 필터 바 ─────────────────────────────────────
-  (function buildColorFilter() {
+  // ── 색상 필터 바 (재호출 가능) ───────────────────────
+  let colorBar = null;
+  function buildColorFilter() {
     const COLORS = [["red","빨강"],["amber","노랑"],["green","초록"],["blue","파랑"],["purple","보라"],["pink","분홍"]];
     const used = new Set((company.cards || []).map(c => c.color).filter(Boolean));
+    if (colorBar) { colorBar.remove(); colorBar = null; }
+    if (colorFilter && !used.has(colorFilter)) colorFilter = "";  // 더 이상 없는 색이면 해제
     if (!used.size) return;
     const toolbar = document.querySelector(".toolbar");
     if (!toolbar) return;
-    const bar = document.createElement("section");
-    bar.className = "color-filter";
-    let html = '<button class="cf-chip active" data-color="">전체</button>';
+    colorBar = document.createElement("section");
+    colorBar.className = "color-filter";
+    let html = '<button class="cf-chip' + (colorFilter ? "" : " active") + '" data-color="">전체</button>';
     COLORS.forEach(c => {
-      if (used.has(c[0])) html += '<button class="cf-chip sw-' + c[0] + '" data-color="' + c[0] + '" title="' + c[1] + '"><span class="cf-dot"></span>' + c[1] + '</button>';
+      if (used.has(c[0])) html += '<button class="cf-chip sw-' + c[0] + (colorFilter === c[0] ? " active" : "") +
+        '" data-color="' + c[0] + '" title="' + c[1] + '"><span class="cf-dot"></span>' + c[1] + '</button>';
     });
-    bar.innerHTML = html;
-    toolbar.insertAdjacentElement("afterend", bar);
-    bar.addEventListener("click", (e) => {
+    colorBar.innerHTML = html;
+    toolbar.insertAdjacentElement("afterend", colorBar);
+    colorBar.addEventListener("click", (e) => {
       const chip = e.target.closest(".cf-chip");
       if (!chip) return;
       colorFilter = chip.getAttribute("data-color") || "";
-      bar.querySelectorAll(".cf-chip").forEach(c => c.classList.remove("active"));
+      colorBar.querySelectorAll(".cf-chip").forEach(c => c.classList.remove("active"));
       chip.classList.add("active");
       filter();
     });
-  })();
+  }
+  buildColorFilter();
 
   // 이미지 클릭 → 라이트박스(원본 1400px) / 카드 수정·삭제 (이벤트 위임 — 1회 등록)
   cardsEl.addEventListener("click", (e) => {
@@ -395,6 +412,19 @@
   }
 
   render(cards);
+
+  // 카드 추가/수정/삭제 후: 전체 새로고침 없이 그 자리에서 다시 그리고 스크롤 위치 유지
+  window.__INV_PAGE_REFRESH = async function () {
+    const y = window.scrollY;
+    let ok;
+    try { ok = await loadData(); } catch (_) { location.reload(); return; }
+    if (!ok) { location.href = "index.html"; return; }  // 기업 자체가 삭제됨
+    updateHeader();
+    recomputeCards();
+    buildColorFilter();
+    filter();
+    requestAnimationFrame(() => window.scrollTo(0, y));
+  };
 
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
