@@ -47,7 +47,8 @@ body {
 .topbar .subtitle { margin: 0; color: var(--muted); font-size: 14px; }
 .topbar .back {
   display: inline-block; margin-bottom: 10px;
-  color: var(--accent); text-decoration: none; font-size: 13px;
+  color: var(--accent); text-decoration: none;
+  font-size: 16px; font-weight: 500; padding: 4px 2px;
 }
 .topbar .back:hover { text-decoration: underline; }
 .topbar h1 .name-link {
