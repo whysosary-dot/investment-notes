@@ -646,7 +646,14 @@
   // 이미지 업로드: 같은 경로가 이미 있으면 sha 를 받아 덮어쓰기(422 'sha' 누락 방지)
   function ghPutImage(token, cfg, path, base64Content, message) {
     return ghGetSha(token, cfg, path).then(function (sha) {
-      return ghPutFile(token, cfg, path, base64Content, message, sha);
+      return ghPutFile(token, cfg, path, base64Content, message, sha).catch(function (e) {
+        // 기존 파일인데 sha 없이 보내 422 가 나면, sha 재조회 후 1회 재시도(덮어쓰기)
+        if (!/\b422\b/.test(String(e && e.message))) throw e;
+        return ghGetSha(token, cfg, path).then(function (sha2) {
+          if (!sha2) throw e;
+          return ghPutFile(token, cfg, path, base64Content, message, sha2);
+        });
+      });
     });
   }
 
