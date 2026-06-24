@@ -279,7 +279,8 @@
         '<label class="inv-f"><span>요약 (한 줄당 1불릿)</span><textarea id="iv-summary" rows="4" placeholder="핵심 포인트 1&#10;핵심 포인트 2">' + esc((card.summary || []).join("\n")) + '</textarea></label>' +
         '<label class="inv-f"><span>태그 (쉼표로 구분)</span><input id="iv-tags" value="' + esc((card.tags || []).join(", ")) + '" placeholder="실적, 1Q26, 매수" /></label>' +
 
-        '<label class="inv-f"><span>이미지 첨부 (자동 리사이즈·압축)</span><input id="iv-imgs" type="file" accept="image/*" multiple /></label>' +
+        '<label class="inv-f"><span>이미지 첨부 (파일 선택 · Ctrl+V 붙여넣기 · 드래그&드롭, 자동 압축)</span><input id="iv-imgs" type="file" accept="image/*" multiple /></label>' +
+        '<div id="iv-paste" class="inv-paste" tabindex="0">📋 여기를 클릭한 뒤 <b>Ctrl+V</b>로 스크린샷·복사한 이미지를 붙여넣거나, 이미지를 끌어다 놓으세요</div>' +
         '<div id="iv-img-prev" class="inv-img-prev"></div>' +
       '</div>' +
       '<div class="inv-modal-ft">' +
@@ -318,16 +319,49 @@
     }
     renderThumbs();
 
-    m.querySelector("#iv-imgs").addEventListener("change", function (e) {
-      var files = Array.prototype.slice.call(e.target.files || []);
-      e.target.value = "";
-      files.reduce(function (p, f) {
+    // 파일/붙여넣기/드롭 공용 처리
+    function addFiles(files) {
+      var list = Array.prototype.slice.call(files || []).filter(function (f) { return /^image\//.test(f.type); });
+      if (!list.length) return;
+      list.reduce(function (p, f) {
         return p.then(function () {
           return fileToResizedDataURL(f).then(function (d) { imgItems.push({ kind: "new", dataURL: d, path: null }); renderThumbs(); })
             .catch(function (err) { toast(err.message || String(err), "err"); });
         });
       }, Promise.resolve());
+    }
+
+    m.querySelector("#iv-imgs").addEventListener("change", function (e) {
+      addFiles(e.target.files); e.target.value = "";
     });
+
+    // Ctrl+V 붙여넣기 (스크린샷 등 클립보드 이미지). 모달 열린 동안 document 에서 수신.
+    function onPaste(e) {
+      if (!document.body.contains(m)) { document.removeEventListener("paste", onPaste); return; }
+      var items = (e.clipboardData && e.clipboardData.items) || [];
+      var imgs = [];
+      for (var i = 0; i < items.length; i++) {
+        if (items[i].kind === "file" && /^image\//.test(items[i].type)) {
+          var f = items[i].getAsFile(); if (f) imgs.push(f);
+        }
+      }
+      if (imgs.length) { e.preventDefault(); addFiles(imgs); toast(imgs.length + "개 이미지 붙여넣음"); }
+    }
+    document.addEventListener("paste", onPaste);
+    var mo = new MutationObserver(function () {
+      if (!document.body.contains(ov)) { document.removeEventListener("paste", onPaste); mo.disconnect(); }
+    });
+    mo.observe(document.body, { childList: true });
+
+    // 드래그 & 드롭
+    var pasteZone = m.querySelector("#iv-paste");
+    ["dragenter", "dragover"].forEach(function (ev) {
+      m.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); pasteZone.classList.add("drag"); });
+    });
+    ["dragleave", "drop"].forEach(function (ev) {
+      m.addEventListener(ev, function (e) { e.preventDefault(); e.stopPropagation(); pasteZone.classList.remove("drag"); });
+    });
+    m.addEventListener("drop", function (e) { if (e.dataTransfer && e.dataTransfer.files) addFiles(e.dataTransfer.files); });
 
     if (!isEdit) {
       var coSel = m.querySelector("#iv-co"), newco = m.querySelector("#iv-newco");

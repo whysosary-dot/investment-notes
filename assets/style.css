@@ -391,6 +391,15 @@ body {
 .card-imgs .img img { display: block; width: 100%; height: auto; }
 
 /* ── admin: 모달 이미지 미리보기 ─────────────────────── */
+.inv-paste {
+  border: 1.5px dashed var(--line); border-radius: 10px;
+  padding: 12px 14px; margin: 0 0 10px; text-align: center;
+  font-size: 12.5px; color: var(--muted); background: var(--panel-2);
+  cursor: pointer; transition: border-color .15s, color .15s, background .15s; outline: none;
+}
+.inv-paste b { color: var(--text); }
+.inv-paste:hover, .inv-paste:focus { border-color: var(--accent); color: var(--text); }
+.inv-paste.drag { border-color: var(--accent); color: var(--accent); background: rgba(31,111,235,.08); }
 .inv-img-prev { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 12px; }
 .inv-thumb { position: relative; width: 84px; }
 .inv-thumb img {
