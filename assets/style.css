@@ -407,3 +407,15 @@ body {
 .inv-editing-co b { color: var(--text); }
 .inv-confirm { max-width: 400px; }
 .inv-confirm-msg { font-size: 14px; line-height: 1.5; white-space: pre-line; margin: 4px 0; }
+
+/* ── admin: 이미지 라이트박스 ────────────────────────── */
+.inv-lightbox {
+  position: fixed; inset: 0; z-index: 1200;
+  background: rgba(0, 0, 0, .86);
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px; cursor: zoom-out; overflow: auto;
+}
+.inv-lightbox img {
+  max-width: 96vw; max-height: 96vh; width: auto; height: auto;
+  border-radius: 8px; box-shadow: 0 10px 44px rgba(0, 0, 0, .5);
+}

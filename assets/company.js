@@ -315,8 +315,15 @@
 
   q.addEventListener("input", filter);
 
-  // 카드 수정/삭제 (이벤트 위임 — 1회 등록)
+  // 이미지 클릭 → 라이트박스(원본 1400px) / 카드 수정·삭제 (이벤트 위임 — 1회 등록)
   cardsEl.addEventListener("click", (e) => {
+    const imgA = e.target.closest("a.img");
+    if (imgA) {
+      e.preventDefault();
+      const im = imgA.querySelector("img");
+      openLightbox(im ? im.src : imgA.getAttribute("href"));
+      return;
+    }
     if (!window.InvAdmin) return;
     const ed = e.target.closest("[data-edit]");
     const dl = e.target.closest("[data-del]");
@@ -328,6 +335,21 @@
       window.InvAdmin.deleteCard(company.id, cid, card && card.title);
     }
   });
+
+  function openLightbox(src) {
+    if (!src) return;
+    const ov = document.createElement("div");
+    ov.className = "inv-lightbox";
+    const img = document.createElement("img");
+    img.src = src;
+    img.alt = "첨부 이미지 원본";
+    ov.appendChild(img);
+    const close = () => { ov.remove(); document.removeEventListener("keydown", onKey); };
+    const onKey = (ev) => { if (ev.key === "Escape") close(); };
+    ov.addEventListener("click", close);
+    document.addEventListener("keydown", onKey);
+    document.body.appendChild(ov);
+  }
 
   render(cards);
 
