@@ -635,6 +635,20 @@
       return r.text().then(function (t) { throw new Error("PUT " + path + " 실패 " + r.status + ": " + t.slice(0, 140)); });
     });
   }
+  // 임의 경로 파일의 sha 조회(없으면 null). 기존 파일 덮어쓰기에 필요.
+  function ghGetSha(token, cfg, path) {
+    return fetch(ghContentsUrl(cfg, path) + "?ref=" + encodeURIComponent(cfg.branch), { headers: ghHeaders(token) })
+      .then(function (r) {
+        if (r.status === 200) return r.json().then(function (j) { return j.sha || null; });
+        return null; // 404 등 → 신규 파일
+      }).catch(function () { return null; });
+  }
+  // 이미지 업로드: 같은 경로가 이미 있으면 sha 를 받아 덮어쓰기(422 'sha' 누락 방지)
+  function ghPutImage(token, cfg, path, base64Content, message) {
+    return ghGetSha(token, cfg, path).then(function (sha) {
+      return ghPutFile(token, cfg, path, base64Content, message, sha);
+    });
+  }
 
   // ── 커밋 & 푸시 ──────────────────────────────────────
   function pushPending() {
@@ -659,7 +673,7 @@
       return p.then(function () {
         prog();
         var content = u.dataURL.slice(u.dataURL.indexOf(",") + 1);
-        return ghPutFile(token, cfg, u.path, content, "Add image: " + u.path);
+        return ghPutImage(token, cfg, u.path, content, "Add image: " + u.path);
       });
     }, Promise.resolve()).then(function () {
       return ghGetFile(token, cfg);
