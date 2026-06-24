@@ -418,20 +418,20 @@ body {
 .inv-confirm { max-width: 400px; }
 .inv-confirm-msg { font-size: 14px; line-height: 1.5; white-space: pre-line; margin: 4px 0; }
 
-/* ── 카드 배경 색상 (라이트=파스텔, 다크=은은한 틴트) ─── */
-.card[data-color="red"]    { background: #FCEBEB; border-color: #F0C2C2; }
-.card[data-color="amber"]  { background: #FAF1DC; border-color: #EAD9A8; }
-.card[data-color="green"]  { background: #EAF4DE; border-color: #C6E0A2; }
-.card[data-color="blue"]   { background: #E7F1FB; border-color: #B7D6F2; }
-.card[data-color="purple"] { background: #EFEDFC; border-color: #CBC7F0; }
-.card[data-color="pink"]   { background: #FBEAF1; border-color: #F1C1D5; }
+/* ── 카드·기업타일 배경 색상 (라이트=파스텔, 다크=은은한 틴트) ─── */
+.card[data-color="red"],    .company[data-color="red"]    { background: #FCEBEB; border-color: #F0C2C2; }
+.card[data-color="amber"],  .company[data-color="amber"]  { background: #FAF1DC; border-color: #EAD9A8; }
+.card[data-color="green"],  .company[data-color="green"]  { background: #EAF4DE; border-color: #C6E0A2; }
+.card[data-color="blue"],   .company[data-color="blue"]   { background: #E7F1FB; border-color: #B7D6F2; }
+.card[data-color="purple"], .company[data-color="purple"] { background: #EFEDFC; border-color: #CBC7F0; }
+.card[data-color="pink"],   .company[data-color="pink"]   { background: #FBEAF1; border-color: #F1C1D5; }
 @media (prefers-color-scheme: dark) {
-  .card[data-color="red"]    { background: #2C1517; border-color: #5A2E30; }
-  .card[data-color="amber"]  { background: #2E2611; border-color: #5A4A1E; }
-  .card[data-color="green"]  { background: #18280F; border-color: #2E4A1C; }
-  .card[data-color="blue"]   { background: #122334; border-color: #234A6E; }
-  .card[data-color="purple"] { background: #1E1A33; border-color: #3A3470; }
-  .card[data-color="pink"]   { background: #2C1622; border-color: #5A2E44; }
+  .card[data-color="red"],    .company[data-color="red"]    { background: #2C1517; border-color: #5A2E30; }
+  .card[data-color="amber"],  .company[data-color="amber"]  { background: #2E2611; border-color: #5A4A1E; }
+  .card[data-color="green"],  .company[data-color="green"]  { background: #18280F; border-color: #2E4A1C; }
+  .card[data-color="blue"],   .company[data-color="blue"]   { background: #122334; border-color: #234A6E; }
+  .card[data-color="purple"], .company[data-color="purple"] { background: #1E1A33; border-color: #3A3470; }
+  .card[data-color="pink"],   .company[data-color="pink"]   { background: #2C1622; border-color: #5A2E44; }
 }
 
 /* ── 모달: 색상 스와치 ───────────────────────────────── */

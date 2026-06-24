@@ -78,6 +78,7 @@
 
   let sortMode     = (savedNow && savedNow.sort)   || "recent";
   let sectorFilter = (savedNow && savedNow.sector) || "";
+  let colorFilter  = "";
   if (savedNow && savedNow.q) q.value = savedNow.q;
 
   let companies = activeTab === "industry" ? industryList : companyList;
@@ -151,6 +152,7 @@
       const a = document.createElement("a");
       a.className = "company" + (hasPending(c) ? " is-pending" : "");
       a.href = "company.html?id=" + encodeURIComponent(c.id);
+      if (c.color) a.dataset.color = c.color;
       const cardCount = (c.cards || []).length;
       const dot = isRecentlyUpdated(c) ? '<span class="updated-dot" title="최근 1일 내 업데이트"></span>' : '';
       a.innerHTML =
@@ -199,6 +201,7 @@
       const a = document.createElement("a");
       a.className = "company" + (hasPending(c) ? " is-pending" : "");
       a.href = "company.html?id=" + encodeURIComponent(c.id);
+      if (c.color) a.dataset.color = c.color;
       const dot = isRecentlyUpdated(c) ? '<span class="updated-dot" title="최근 1일 내 업데이트"></span>' : '';
       a.innerHTML =
         '<h2 class="name">' + dot + escapeHtml(c.name) + pendingTag(c) + '</h2>' +
@@ -225,6 +228,7 @@
       return false;
     }) : companies;
     if (sectorFilter) base = base.filter(c => (c.sector || "") === sectorFilter);
+    if (colorFilter) base = base.filter(c => (c.color || "") === colorFilter);
     renderWithSectors(base);
     saveTabState();
   }
@@ -339,6 +343,32 @@
     updateChipsUI();
   }
 
+  // ── 색상 필터 바 ─────────────────────────────────────
+  const COLOR_DEFS = [["red","빨강"],["amber","노랑"],["green","초록"],["blue","파랑"],["purple","보라"],["pink","분홍"]];
+  let colorBar = null;
+  function buildColorChips() {
+    if (!colorBar) {
+      colorBar = document.createElement("section");
+      colorBar.className = "color-filter";
+      sectorWrap.insertAdjacentElement("afterend", colorBar);
+    }
+    const used = new Set(companies.map(c => c.color).filter(Boolean));
+    if (!used.size) { colorBar.hidden = true; colorBar.innerHTML = ""; return; }
+    colorBar.hidden = false;
+    let html = '<button class="cf-chip' + (colorFilter ? "" : " active") + '" data-color="">전체</button>';
+    COLOR_DEFS.forEach(c => {
+      if (used.has(c[0])) html += '<button class="cf-chip sw-' + c[0] + (colorFilter === c[0] ? " active" : "") +
+        '" data-color="' + c[0] + '" title="' + c[1] + '"><span class="cf-dot"></span>' + c[1] + '</button>';
+    });
+    colorBar.innerHTML = html;
+    colorBar.querySelectorAll(".cf-chip").forEach(ch => ch.addEventListener("click", () => {
+      colorFilter = ch.getAttribute("data-color") || "";
+      colorBar.querySelectorAll(".cf-chip").forEach(x => x.classList.remove("active"));
+      ch.classList.add("active");
+      filter();
+    }));
+  }
+
   // ── 탭 전환 ──────────────────────────────────────────
   const tabBtns = document.querySelectorAll(".tab-btn");
 
@@ -351,6 +381,7 @@
     const saved = loadTabState(tab === "industry" ? KEY_IND : KEY_CO);
     sortMode     = (saved && saved.sort)   || "recent";
     sectorFilter = (saved && saved.sector) || "";
+    colorFilter  = "";
     q.value      = (saved && saved.q)      || "";
 
     // 정렬 버튼 UI
@@ -362,6 +393,7 @@
 
     buildSectors();
     buildSectorChips();
+    buildColorChips();
     filter();
     window.scrollTo(0, 0);
   }
@@ -394,6 +426,7 @@
   // ── 초기 섹터 빌드 & 렌더 ────────────────────────────
   buildSectors();
   buildSectorChips();
+  buildColorChips();
   filter();
 
   if (savedNow && savedNow.scrollY) {

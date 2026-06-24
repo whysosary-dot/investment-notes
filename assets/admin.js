@@ -9,6 +9,20 @@
   var IMG_MAXDIM = 1400, IMG_QUALITY = 0.82;
   var RECENT_TTL_MS = 30 * 60 * 1000; // 푸시 후 Pages 반영 대기 동안 카드 유지(최대 30분)
   var CARD_COLORS = [["red", "빨강"], ["amber", "노랑"], ["green", "초록"], ["blue", "파랑"], ["purple", "보라"], ["pink", "분홍"]];
+  function colorSwatchHtml(cur) {
+    var html = '<button type="button" class="inv-color none' + (cur ? "" : " active") + '" data-color="" title="없음">✕</button>';
+    return html + CARD_COLORS.map(function (c) {
+      return '<button type="button" class="inv-color sw-' + c[0] + (cur === c[0] ? " active" : "") + '" data-color="' + c[0] + '" title="' + c[1] + '" aria-label="' + c[1] + '"></button>';
+    }).join("");
+  }
+  function wireColorSwatches(box) {
+    box.querySelectorAll(".inv-color").forEach(function (b) {
+      b.addEventListener("click", function () {
+        box.querySelectorAll(".inv-color").forEach(function (x) { x.classList.remove("active"); });
+        b.classList.add("active");
+      });
+    });
+  }
 
   // ── 유틸 ─────────────────────────────────────────────
   function todayKST() {
@@ -323,20 +337,10 @@
     renderThumbs();
 
     // 색상 선택 스와치
-    (function buildColorPicker() {
+    (function () {
       var box = m.querySelector("#iv-colors");
-      var cur = card.color || "";
-      var html = '<button type="button" class="inv-color none' + (cur ? "" : " active") + '" data-color="" title="없음">✕</button>';
-      html += CARD_COLORS.map(function (c) {
-        return '<button type="button" class="inv-color sw-' + c[0] + (cur === c[0] ? " active" : "") + '" data-color="' + c[0] + '" title="' + c[1] + '" aria-label="' + c[1] + '"></button>';
-      }).join("");
-      box.innerHTML = html;
-      box.querySelectorAll(".inv-color").forEach(function (b) {
-        b.addEventListener("click", function () {
-          box.querySelectorAll(".inv-color").forEach(function (x) { x.classList.remove("active"); });
-          b.classList.add("active");
-        });
-      });
+      box.innerHTML = colorSwatchHtml(card.color || "");
+      wireColorSwatches(box);
     })();
 
     // 파일/붙여넣기/드롭 공용 처리
@@ -498,15 +502,22 @@
           '<label class="inv-f"><span>티커</span><input id="iv-cticker" value="' + esc(company.ticker || "") + '" /></label>' +
           '<label class="inv-f"><span>섹터</span><input id="iv-csector" value="' + esc(company.sector || "") + '" /></label>' +
         '</div>' +
+        '<label class="inv-f"><span>색상 (중요 표시·색상 필터용)</span><div class="inv-colors" id="iv-ccolors"></div></label>' +
       '</div>' +
       '<div class="inv-modal-ft"><span class="inv-hint">ID(' + esc(company.id) + ')는 변경 불가</span>' +
       '<button class="inv-btn primary" id="iv-csave">수정 저장</button></div>';
     var ov = openModal(m);
+    (function () {
+      var box = m.querySelector("#iv-ccolors");
+      box.innerHTML = colorSwatchHtml(company.color || "");
+      wireColorSwatches(box);
+    })();
     m.querySelector("[data-x]").addEventListener("click", function () { ov.remove(); });
     m.querySelector("#iv-csave").addEventListener("click", function () {
       var name = m.querySelector("#iv-cname").value.trim();
       if (!name) { toast("이름을 입력하세요.", "err"); return; }
-      var meta = { name: name, ticker: m.querySelector("#iv-cticker").value.trim(), sector: m.querySelector("#iv-csector").value.trim() };
+      var colorEl = m.querySelector("#iv-ccolors .inv-color.active");
+      var meta = { name: name, ticker: m.querySelector("#iv-cticker").value.trim(), sector: m.querySelector("#iv-csector").value.trim(), color: (colorEl ? (colorEl.getAttribute("data-color") || "") : "") };
       var ops = getPending();
       // 미푸시 신규기업이면 그 op 갱신
       var done = false;
