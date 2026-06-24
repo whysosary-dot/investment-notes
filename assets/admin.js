@@ -8,6 +8,7 @@
   var K_RECENT = "inv_recent_pushed_v1";
   var IMG_MAXDIM = 1400, IMG_QUALITY = 0.82;
   var RECENT_TTL_MS = 30 * 60 * 1000; // 푸시 후 Pages 반영 대기 동안 카드 유지(최대 30분)
+  var CARD_COLORS = [["red", "빨강"], ["amber", "노랑"], ["green", "초록"], ["blue", "파랑"], ["purple", "보라"], ["pink", "분홍"]];
 
   // ── 유틸 ─────────────────────────────────────────────
   function todayKST() {
@@ -279,6 +280,8 @@
         '<label class="inv-f"><span>요약 (한 줄당 1불릿)</span><textarea id="iv-summary" rows="4" placeholder="핵심 포인트 1&#10;핵심 포인트 2">' + esc((card.summary || []).join("\n")) + '</textarea></label>' +
         '<label class="inv-f"><span>태그 (쉼표로 구분)</span><input id="iv-tags" value="' + esc((card.tags || []).join(", ")) + '" placeholder="실적, 1Q26, 매수" /></label>' +
 
+        '<label class="inv-f"><span>카드 색상 (중요 표시·색상 필터용)</span><div class="inv-colors" id="iv-colors"></div></label>' +
+
         '<label class="inv-f"><span>이미지 첨부 (파일 선택 · Ctrl+V 붙여넣기 · 드래그&드롭, 자동 압축)</span><input id="iv-imgs" type="file" accept="image/*" multiple /></label>' +
         '<div id="iv-paste" class="inv-paste" tabindex="0">📋 여기를 클릭한 뒤 <b>Ctrl+V</b>로 스크린샷·복사한 이미지를 붙여넣거나, 이미지를 끌어다 놓으세요</div>' +
         '<div id="iv-img-prev" class="inv-img-prev"></div>' +
@@ -318,6 +321,23 @@
       });
     }
     renderThumbs();
+
+    // 색상 선택 스와치
+    (function buildColorPicker() {
+      var box = m.querySelector("#iv-colors");
+      var cur = card.color || "";
+      var html = '<button type="button" class="inv-color none' + (cur ? "" : " active") + '" data-color="" title="없음">✕</button>';
+      html += CARD_COLORS.map(function (c) {
+        return '<button type="button" class="inv-color sw-' + c[0] + (cur === c[0] ? " active" : "") + '" data-color="' + c[0] + '" title="' + c[1] + '" aria-label="' + c[1] + '"></button>';
+      }).join("");
+      box.innerHTML = html;
+      box.querySelectorAll(".inv-color").forEach(function (b) {
+        b.addEventListener("click", function () {
+          box.querySelectorAll(".inv-color").forEach(function (x) { x.classList.remove("active"); });
+          b.classList.add("active");
+        });
+      });
+    })();
 
     // 파일/붙여넣기/드롭 공용 처리
     function addFiles(files) {
@@ -395,6 +415,7 @@
         };
         if (images.length) cardObj.images = images;
         if (uploads.length) cardObj._uploads = uploads;
+        if (base.color) cardObj.color = base.color;
         // 차트는 웹 폼에서 입력하지 않음 — 수정 시 기존(자동 생성) 차트는 그대로 보존
         if (isEdit) {
           if (opts.card.charts) cardObj.charts = opts.card.charts;
@@ -448,7 +469,9 @@
     var date = m.querySelector("#iv-date").value || todayKST();
     var summary = m.querySelector("#iv-summary").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
     var tags = m.querySelector("#iv-tags").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
-    return { title: title, date: date, summary: summary, tags: tags };
+    var colorEl = m.querySelector(".inv-color.active");
+    var color = colorEl ? (colorEl.getAttribute("data-color") || "") : "";
+    return { title: title, date: date, summary: summary, tags: tags, color: color };
   }
   function buildCompanyFields(m) {
     var name = m.querySelector("#iv-name").value.trim();

@@ -222,6 +222,7 @@
     for (const k of list) {
       const div = document.createElement("article");
       div.className = "card" + (k._pending ? " is-pending" : "");
+      if (k.color) div.dataset.color = k.color;
 
       let imgs = [];
       if (k.source_image) imgs.push(k.source_image);
@@ -308,22 +309,51 @@
     return c.length > 0 && /^[ㄱ-ㅎ]+$/.test(c);
   }
 
+  let colorFilter = "";
   function filter() {
     const t = (q.value || "").trim().toLowerCase();
-    if (!t) return render(cards);
-    const choMode = isChosungQuery(t);
-    const tCho = choMode ? t.replace(/\s+/g, "") : "";
-    const out = cards.filter(k => {
-      const hay = [k.title, k.date, ...(k.summary || []), ...(k.tags || [])]
-        .filter(Boolean).join(" ").toLowerCase();
-      if (hay.includes(t)) return true;
-      if (choMode) return toChosung(hay).replace(/\s+/g, "").includes(tCho);
-      return false;
-    });
-    render(out);
+    let base = cards;
+    if (t) {
+      const choMode = isChosungQuery(t);
+      const tCho = choMode ? t.replace(/\s+/g, "") : "";
+      base = cards.filter(k => {
+        const hay = [k.title, k.date, ...(k.summary || []), ...(k.tags || [])]
+          .filter(Boolean).join(" ").toLowerCase();
+        if (hay.includes(t)) return true;
+        if (choMode) return toChosung(hay).replace(/\s+/g, "").includes(tCho);
+        return false;
+      });
+    }
+    if (colorFilter) base = base.filter(k => (k.color || "") === colorFilter);
+    render(base);
   }
 
   q.addEventListener("input", filter);
+
+  // ── 색상 필터 바 ─────────────────────────────────────
+  (function buildColorFilter() {
+    const COLORS = [["red","빨강"],["amber","노랑"],["green","초록"],["blue","파랑"],["purple","보라"],["pink","분홍"]];
+    const used = new Set((company.cards || []).map(c => c.color).filter(Boolean));
+    if (!used.size) return;
+    const toolbar = document.querySelector(".toolbar");
+    if (!toolbar) return;
+    const bar = document.createElement("section");
+    bar.className = "color-filter";
+    let html = '<button class="cf-chip active" data-color="">전체</button>';
+    COLORS.forEach(c => {
+      if (used.has(c[0])) html += '<button class="cf-chip sw-' + c[0] + '" data-color="' + c[0] + '" title="' + c[1] + '"><span class="cf-dot"></span>' + c[1] + '</button>';
+    });
+    bar.innerHTML = html;
+    toolbar.insertAdjacentElement("afterend", bar);
+    bar.addEventListener("click", (e) => {
+      const chip = e.target.closest(".cf-chip");
+      if (!chip) return;
+      colorFilter = chip.getAttribute("data-color") || "";
+      bar.querySelectorAll(".cf-chip").forEach(c => c.classList.remove("active"));
+      chip.classList.add("active");
+      filter();
+    });
+  })();
 
   // 이미지 클릭 → 라이트박스(원본 1400px) / 카드 수정·삭제 (이벤트 위임 — 1회 등록)
   cardsEl.addEventListener("click", (e) => {
