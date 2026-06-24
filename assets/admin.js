@@ -215,7 +215,6 @@
       })).join("");
 
     var card = isEdit ? (opts.card || {}) : {};
-    var chart0 = card.charts ? card.charts[0] : card.chart; // 수정 시 첫 차트만 폼에 표시
 
     var m = document.createElement("div");
     m.className = "inv-modal";
@@ -244,29 +243,6 @@
 
         '<label class="inv-f"><span>이미지 첨부 (자동 리사이즈·압축)</span><input id="iv-imgs" type="file" accept="image/*" multiple /></label>' +
         '<div id="iv-img-prev" class="inv-img-prev"></div>' +
-
-        '<div class="inv-chart-tog"><label><input type="checkbox" id="iv-chart-on"' + (chart0 ? " checked" : "") + ' /> 차트' + (card.charts && card.charts.length > 1 ? " (이 카드엔 차트 " + card.charts.length + "개 — 첫 차트만 편집)" : "") + '</label></div>' +
-        '<div id="iv-chart" class="inv-chart"' + (chart0 ? "" : " hidden") + '>' +
-          '<div class="inv-row">' +
-            '<label class="inv-f inv-narrow"><span>유형</span><select id="iv-ch-type">' +
-              ['bar:세로막대', 'bar-h:가로막대', 'donut:도넛', 'line:라인'].map(function (o) {
-                var v = o.split(":")[0], t = o.split(":")[1];
-                return '<option value="' + v + '"' + (chart0 && (chart0.type || "bar") === v ? " selected" : "") + ">" + t + "</option>";
-              }).join("") + '</select></label>' +
-            '<label class="inv-f"><span>차트 제목</span><input id="iv-ch-title" value="' + esc(chart0 && chart0.title || "") + '" placeholder="예: 영업이익" /></label>' +
-            '<label class="inv-f inv-narrow"><span>단위</span><input id="iv-ch-unit" value="' + esc(chart0 && chart0.unit || "") + '" placeholder="억원" /></label>' +
-          '</div>' +
-          '<label class="inv-f"><span>라벨 (쉼표)</span><input id="iv-ch-labels" value="' + esc(chart0 && (chart0.labels || []).join(", ") || "") + '" placeholder="25.1Q, 25.2Q, 26.1Q" /></label>' +
-          '<label class="inv-f"><span>값 (쉼표, 숫자)</span><input id="iv-ch-data" value="' + esc(chart0 && (chart0.data || []).join(", ") || "") + '" placeholder="100, 120, 160" /></label>' +
-          '<div class="inv-row" id="iv-ch-barextra">' +
-            '<label class="inv-f"><span>컨센서스(선택)</span><input id="iv-ch-cons" value="' + esc(chart0 && chart0.consensus != null ? chart0.consensus : "") + '" placeholder="비우면 없음" /></label>' +
-            '<label class="inv-f"><span>최신값 강조</span><select id="iv-ch-surp">' +
-              '<option value="">기본(보라)</option>' +
-              '<option value="true"' + (chart0 && chart0.surprise === true ? " selected" : "") + '>서프라이즈(초록)</option>' +
-              '<option value="false"' + (chart0 && chart0.surprise === false ? " selected" : "") + '>쇼크(주황)</option></select></label>' +
-            '<label class="inv-f"><span>서프라이즈 %</span><input id="iv-ch-spct" value="' + esc(chart0 && chart0.surprise_pct != null ? chart0.surprise_pct : "") + '" placeholder="선택" /></label>' +
-          '</div>' +
-        '</div>' +
       '</div>' +
       '<div class="inv-modal-ft">' +
         '<span class="inv-hint">로컬 저장 → “커밋 & 푸시”로 동기화</span>' +
@@ -315,12 +291,6 @@
       }, Promise.resolve());
     });
 
-    var chOn = m.querySelector("#iv-chart-on"), chBox = m.querySelector("#iv-chart"), chType = m.querySelector("#iv-ch-type"), barExtra = m.querySelector("#iv-ch-barextra");
-    function syncChart() { chBox.hidden = !chOn.checked; }
-    function syncBarExtra() { barExtra.style.display = (chType.value === "bar") ? "" : "none"; }
-    chOn.addEventListener("change", syncChart); chType.addEventListener("change", syncBarExtra);
-    syncChart(); syncBarExtra();
-
     if (!isEdit) {
       var coSel = m.querySelector("#iv-co"), newco = m.querySelector("#iv-newco");
       function syncNewco() { newco.hidden = !!coSel.value; }
@@ -356,12 +326,10 @@
         };
         if (images.length) cardObj.images = images;
         if (uploads.length) cardObj._uploads = uploads;
-        if (base.chart) cardObj.chart = base.chart;
-        // 수정 시 차트가 charts(복수)였다면 첫 항목만 폼반영 — 나머지 유지
-        if (isEdit && opts.card.charts && opts.card.charts.length > 1) {
-          var rest = opts.card.charts.slice(1);
-          cardObj.charts = (base.chart ? [base.chart] : []).concat(rest);
-          delete cardObj.chart;
+        // 차트는 웹 폼에서 입력하지 않음 — 수정 시 기존(자동 생성) 차트는 그대로 보존
+        if (isEdit) {
+          if (opts.card.charts) cardObj.charts = opts.card.charts;
+          else if (opts.card.chart) cardObj.chart = opts.card.chart;
         }
 
         var ops = getPending();
@@ -419,29 +387,7 @@
     var date = m.querySelector("#iv-date").value || todayKST();
     var summary = m.querySelector("#iv-summary").value.split("\n").map(function (s) { return s.trim(); }).filter(Boolean);
     var tags = m.querySelector("#iv-tags").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
-    var out = { title: title, date: date, summary: summary, tags: tags };
-    if (m.querySelector("#iv-chart-on").checked) out.chart = buildChartFields(m);
-    return out;
-  }
-  function buildChartFields(m) {
-    var type = m.querySelector("#iv-ch-type").value;
-    var labels = m.querySelector("#iv-ch-labels").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean);
-    var datav = m.querySelector("#iv-ch-data").value.split(",").map(function (s) { return s.trim(); }).filter(Boolean).map(function (s) {
-      var n = Number(s.replace(/,/g, "")); if (isNaN(n)) throw new Error("차트 값에 숫자가 아닌 항목: " + s); return n;
-    });
-    if (!labels.length || !datav.length) throw new Error("차트 라벨과 값을 입력하세요.");
-    if (labels.length !== datav.length) throw new Error("라벨(" + labels.length + ")과 값(" + datav.length + ") 개수가 다릅니다.");
-    var ch = { type: type, title: m.querySelector("#iv-ch-title").value.trim() || "차트", labels: labels, data: datav };
-    var unit = m.querySelector("#iv-ch-unit").value.trim(); if (unit) ch.unit = unit;
-    if (type === "bar") {
-      var cons = m.querySelector("#iv-ch-cons").value.trim();
-      if (cons !== "") { var cn = Number(cons.replace(/,/g, "")); if (!isNaN(cn)) ch.consensus = cn; }
-      var surp = m.querySelector("#iv-ch-surp").value;
-      if (surp === "true") ch.surprise = true; else if (surp === "false") ch.surprise = false;
-      var spct = m.querySelector("#iv-ch-spct").value.trim();
-      if (spct !== "") { var sp = Number(spct.replace(/,/g, "")); if (!isNaN(sp)) ch.surprise_pct = sp; }
-    }
-    return ch;
+    return { title: title, date: date, summary: summary, tags: tags };
   }
   function buildCompanyFields(m) {
     var name = m.querySelector("#iv-name").value.trim();
