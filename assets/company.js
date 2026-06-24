@@ -222,7 +222,10 @@
     for (const k of list) {
       const div = document.createElement("article");
       div.className = "card" + (k._pending ? " is-pending" : "");
-      if (k.color) div.dataset.color = k.color;
+      const COLOR_LABEL = { red:"빨강", amber:"노랑", green:"초록", blue:"파랑", purple:"보라", pink:"분홍" };
+      const colorDot = k.color
+        ? '<span class="card-dot sw-' + k.color + '" title="' + (COLOR_LABEL[k.color] || k.color) + '" aria-label="' + (COLOR_LABEL[k.color] || k.color) + '"></span>'
+        : "";
 
       let imgs = [];
       if (k.source_image) imgs.push(k.source_image);
@@ -277,7 +280,7 @@
           '</div>'
         : "";
       div.innerHTML =
-        "<h3>" + escapeHtml(k.title || "(제목 없음)") + pendTag + "</h3>" +
+        "<h3>" + colorDot + escapeHtml(k.title || "(제목 없음)") + pendTag + "</h3>" +
         '<p class="date">' + escapeHtml(k.date || "") + "</p>" +
         imgBlock + chartBlock +
         (bullets ? "<ul>" + bullets + "</ul>" : "") +

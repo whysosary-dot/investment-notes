@@ -418,21 +418,33 @@ body {
 .inv-confirm { max-width: 400px; }
 .inv-confirm-msg { font-size: 14px; line-height: 1.5; white-space: pre-line; margin: 4px 0; }
 
-/* ── 카드·기업타일 배경 색상 (2배 더 연하게 — 가독성 우선) ─── */
-.card[data-color="red"],    .company[data-color="red"]    { background: #FEF5F5; border-color: #F8E1E1; }
-.card[data-color="amber"],  .company[data-color="amber"]  { background: #FDF8EE; border-color: #F5ECD4; }
-.card[data-color="green"],  .company[data-color="green"]  { background: #F5FAEF; border-color: #E3F0D1; }
-.card[data-color="blue"],   .company[data-color="blue"]   { background: #F3F8FD; border-color: #DBEBF9; }
-.card[data-color="purple"], .company[data-color="purple"] { background: #F7F6FE; border-color: #E5E3F8; }
-.card[data-color="pink"],   .company[data-color="pink"]   { background: #FDF5F8; border-color: #F8E0EA; }
+/* ── 기업/산업 타일 배경 색상 (2배 연한 톤) ─────────── */
+.company[data-color="red"]    { background: #FEF5F5; border-color: #F8E1E1; }
+.company[data-color="amber"]  { background: #FDF8EE; border-color: #F5ECD4; }
+.company[data-color="green"]  { background: #F5FAEF; border-color: #E3F0D1; }
+.company[data-color="blue"]   { background: #F3F8FD; border-color: #DBEBF9; }
+.company[data-color="purple"] { background: #F7F6FE; border-color: #E5E3F8; }
+.company[data-color="pink"]   { background: #FDF5F8; border-color: #F8E0EA; }
 @media (prefers-color-scheme: dark) {
-  .card[data-color="red"],    .company[data-color="red"]    { background: #20161A; border-color: #402D32; }
-  .card[data-color="amber"],  .company[data-color="amber"]  { background: #211F17; border-color: #403B29; }
-  .card[data-color="green"],  .company[data-color="green"]  { background: #162016; border-color: #2A3B28; }
-  .card[data-color="blue"],   .company[data-color="blue"]   { background: #131D28; border-color: #253B51; }
-  .card[data-color="purple"], .company[data-color="purple"] { background: #191828; border-color: #303052; }
-  .card[data-color="pink"],   .company[data-color="pink"]   { background: #20171F; border-color: #402D3C; }
+  .company[data-color="red"]    { background: #20161A; border-color: #402D32; }
+  .company[data-color="amber"]  { background: #211F17; border-color: #403B29; }
+  .company[data-color="green"]  { background: #162016; border-color: #2A3B28; }
+  .company[data-color="blue"]   { background: #131D28; border-color: #253B51; }
+  .company[data-color="purple"] { background: #191828; border-color: #303052; }
+  .company[data-color="pink"]   { background: #20171F; border-color: #402D3C; }
 }
+
+/* ── 리서치 카드: 제목 앞 색깔 점(배경 대신) ─────────── */
+.card-dot {
+  display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+  margin-right: 7px; vertical-align: 1px; flex-shrink: 0;
+}
+.card-dot.sw-red { background: #E24B4A; }
+.card-dot.sw-amber { background: #EF9F27; }
+.card-dot.sw-green { background: #639922; }
+.card-dot.sw-blue { background: #378ADD; }
+.card-dot.sw-purple { background: #7F77DD; }
+.card-dot.sw-pink { background: #D4537E; }
 
 /* ── 모달: 색상 스와치 ───────────────────────────────── */
 .inv-colors { display: flex; gap: 8px; flex-wrap: wrap; }
