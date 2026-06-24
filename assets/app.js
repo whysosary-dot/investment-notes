@@ -7,13 +7,6 @@
   const q         = document.getElementById("q");
   const repolink  = document.getElementById("repolink");
 
-  // 모든 기기 동일화: 새로(재)로드 시 미푸시 로컬 초안을 버리고 원격(커밋본)에 맞춤.
-  // 편집 직후 프로그램적 새로고침은 sessionStorage 플래그로 1회 보존되어 푸시까지 유지된다.
-  try {
-    if (sessionStorage.getItem("inv_keep_pending_once")) sessionStorage.removeItem("inv_keep_pending_once");
-    else localStorage.removeItem("inv_pending_ops_v1");
-  } catch (_) {}
-
   let data;
   try {
     const res = await fetch("data/companies.json?ts=" + Date.now());
