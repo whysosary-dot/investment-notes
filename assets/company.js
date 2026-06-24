@@ -52,9 +52,18 @@
     }
   } catch (_) {}
 
-  const cards = (company.cards || []).slice().sort((a, b) => {
-    return String(b.date || "").localeCompare(String(a.date || ""));
-  });
+  // 정렬: 자료 날짜(date) 최신순 → 같으면 추가일(added_at) 최신순
+  //       → 그래도 같으면 더 나중에 추가된 카드(배열 뒤쪽)가 앞(왼쪽)으로
+  const cards = (company.cards || [])
+    .map((c, i) => ({ c, i }))
+    .sort((a, b) => {
+      const byDate = String(b.c.date || "").localeCompare(String(a.c.date || ""));
+      if (byDate !== 0) return byDate;
+      const byAdded = String(b.c.added_at || "").localeCompare(String(a.c.added_at || ""));
+      if (byAdded !== 0) return byAdded;
+      return b.i - a.i;
+    })
+    .map(x => x.c);
 
   function drawChart(canvasId, cfg) {
     const canvas = document.getElementById(canvasId);
