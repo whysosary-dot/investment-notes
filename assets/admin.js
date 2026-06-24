@@ -346,7 +346,7 @@
     // 색상 선택 스와치 (추가 시 기본 보라, 수정 시 기존 색 유지)
     (function () {
       var box = m.querySelector("#iv-colors");
-      var def = isEdit ? (card.color || "") : (card.color || "purple");
+      var def = isEdit ? (card.color || "") : (card.color || "red");
       box.innerHTML = colorSwatchHtml(def);
       wireColorSwatches(box);
     })();
