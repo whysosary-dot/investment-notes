@@ -297,7 +297,7 @@
             '</div>') +
 
         '<label class="inv-f"><span>제목 *</span><input id="iv-title" value="' + esc(card.title || "") + '" placeholder="카드 한 줄 요약" /></label>' +
-        '<div class="inv-row"><label class="inv-f"><span>자료 날짜</span><input id="iv-date" type="date" value="' + esc(card.date || todayKST()) + '" /></label></div>' +
+        '<label class="inv-f"><span>자료 날짜</span><input id="iv-date" type="date" value="' + esc(card.date || todayKST()) + '" /></label>' +
         '<label class="inv-f"><span>요약 (한 줄당 1불릿)</span><textarea id="iv-summary" rows="4" placeholder="핵심 포인트 1&#10;핵심 포인트 2">' + esc((card.summary || []).join("\n")) + '</textarea></label>' +
         '<label class="inv-f"><span>태그 (쉼표로 구분)</span><input id="iv-tags" value="' + esc((card.tags || []).join(", ")) + '" placeholder="실적, 1Q26, 매수" /></label>' +
 
