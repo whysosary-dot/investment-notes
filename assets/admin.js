@@ -42,11 +42,14 @@
     });
   }
   function uid() { return Date.now() + "" + Math.floor(Math.random() * 1e6); }
+  // 편집 직후 프로그램적 새로고침/이동에서는 미푸시 초안을 1회 보존(푸시 전 유실 방지)
+  function keepPendingOnce() { try { sessionStorage.setItem("inv_keep_pending_once", "1"); } catch (_) {} }
   // 변경 반영: 페이지가 제자리 갱신을 지원하면 그걸 쓰고(스크롤 유지), 아니면 전체 새로고침
   function softRefresh() {
     if (typeof window.__INV_PAGE_REFRESH === "function") {
       try { window.__INV_PAGE_REFRESH(); return; } catch (_) {}
     }
+    keepPendingOnce();
     location.reload();
   }
 
@@ -575,6 +578,7 @@
       if (!wasPendingNew) ops.push({ id: uid(), type: "delete_company", companyId: company.id });
       setPending(ops);
       toast("기업 삭제 예약됨 — 미푸시 " + pendingCount() + "건");
+      keepPendingOnce();
       setTimeout(function () { location.href = "index.html"; }, 600);
     }, "기업 삭제");
   }

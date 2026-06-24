@@ -9,6 +9,13 @@
   const metaEl = document.getElementById("company-meta");
   const q = document.getElementById("q");
 
+  // 모든 기기 동일화: 페이지를 새로(재)로드할 때 미푸시 로컬 초안을 버리고 원격(커밋본)에 맞춤.
+  // 단, 편집 직후 프로그램적 새로고침은 sessionStorage 플래그로 1회 보존되어 푸시까지 유지된다.
+  try {
+    if (sessionStorage.getItem("inv_keep_pending_once")) sessionStorage.removeItem("inv_keep_pending_once");
+    else localStorage.removeItem("inv_pending_ops_v1");
+  } catch (_) {}
+
   let data, company, cards = [];
 
   function updateHeader() {
