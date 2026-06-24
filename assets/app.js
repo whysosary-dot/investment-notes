@@ -16,6 +16,10 @@
     return;
   }
 
+  // 로컬 미푸시 추가분(localStorage) 병합 — 다른 기기 반영은 "커밋 & 푸시"
+  try { if (window.InvAdmin) window.InvAdmin.applyPending(data); } catch (_) {}
+  window.__INV_DATA = data;
+
   const allEntries  = data.companies || [];
   const companyList = allEntries.filter(c => !c.type || c.type === "company");
   const industryList = allEntries.filter(c => c.type === "industry");
@@ -99,6 +103,13 @@
     }[ch]));
   }
 
+  function hasPending(c) {
+    return !!(c._pending || (c.cards || []).some(k => k._pending));
+  }
+  function pendingTag(c) {
+    return hasPending(c) ? '<span class="inv-pending-tag">미푸시</span>' : '';
+  }
+
   // ── 초성(자음) 검색 유틸 ─────────────────────────────
   // 한글 음절(가~힣)을 첫 자음으로 변환. 예: "삼성전자" → "ㅅㅅㅈㅈ"
   const CHOSUNG = ["ㄱ","ㄲ","ㄴ","ㄷ","ㄸ","ㄹ","ㅁ","ㅂ","ㅃ","ㅅ",
@@ -138,12 +149,12 @@
     empty.hidden = true;
     for (const c of list) {
       const a = document.createElement("a");
-      a.className = "company";
+      a.className = "company" + (hasPending(c) ? " is-pending" : "");
       a.href = "company.html?id=" + encodeURIComponent(c.id);
       const cardCount = (c.cards || []).length;
       const dot = isRecentlyUpdated(c) ? '<span class="updated-dot" title="최근 1일 내 업데이트"></span>' : '';
       a.innerHTML =
-        '<h2 class="name">' + dot + escapeHtml(c.name) + '</h2>' +
+        '<h2 class="name">' + dot + escapeHtml(c.name) + pendingTag(c) + '</h2>' +
         '<p class="meta">' +
           [c.ticker, c.sector].filter(Boolean).map(escapeHtml).join(" · ") +
         '</p>' +
@@ -186,11 +197,11 @@
         prevSector = sec;
       }
       const a = document.createElement("a");
-      a.className = "company";
+      a.className = "company" + (hasPending(c) ? " is-pending" : "");
       a.href = "company.html?id=" + encodeURIComponent(c.id);
       const dot = isRecentlyUpdated(c) ? '<span class="updated-dot" title="최근 1일 내 업데이트"></span>' : '';
       a.innerHTML =
-        '<h2 class="name">' + dot + escapeHtml(c.name) + '</h2>' +
+        '<h2 class="name">' + dot + escapeHtml(c.name) + pendingTag(c) + '</h2>' +
         '<p class="meta">' + [c.ticker, c.sector].filter(Boolean).map(escapeHtml).join(" · ") + '</p>' +
         '<span class="count">' + (c.cards || []).length + ' 카드</span>';
       grid.appendChild(a);

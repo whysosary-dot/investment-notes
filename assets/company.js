@@ -18,6 +18,11 @@
     return;
   }
 
+  // 로컬 미푸시 추가분(localStorage) 병합 — 다른 기기 반영은 "커밋 & 푸시"
+  try { if (window.InvAdmin) window.InvAdmin.applyPending(data); } catch (_) {}
+  window.__INV_DATA = data;
+  window.__INV_COMPANY_ID = id;
+
   const company = (data.companies || []).find(c => c.id === id);
   if (!company) {
     nameEl.textContent = "기업을 찾을 수 없습니다";
@@ -193,7 +198,7 @@
 
     for (const k of list) {
       const div = document.createElement("article");
-      div.className = "card";
+      div.className = "card" + (k._pending ? " is-pending" : "");
 
       const imgBlock = k.source_image
         ? '<a class="img" href="' + encodeURI(k.source_image) + '" target="_blank" rel="noopener">' +
@@ -233,7 +238,8 @@
       const tags = (k.tags || []).map(t => '<span class="tag">' + escapeHtml(t) + "</span>").join("");
 
       div.innerHTML =
-        "<h3>" + escapeHtml(k.title || "(제목 없음)") + "</h3>" +
+        "<h3>" + escapeHtml(k.title || "(제목 없음)") +
+        (k._pending ? '<span class="inv-pending-tag">미푸시</span>' : "") + "</h3>" +
         '<p class="date">' + escapeHtml(k.date || "") + "</p>" +
         imgBlock + chartBlock +
         (bullets ? "<ul>" + bullets + "</ul>" : "") +
