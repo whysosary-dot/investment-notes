@@ -309,16 +309,21 @@ body {
 .inv-f { display: block; margin: 0 0 12px; }
 .inv-f > span { display: block; font-size: 12px; color: var(--muted); margin-bottom: 5px; }
 .inv-f input, .inv-f select, .inv-f textarea {
-  width: 100%; padding: 9px 11px;
+  width: 100%; min-width: 0; max-width: 100%; padding: 9px 11px;
   background: var(--panel-2); color: var(--text);
   border: 1px solid var(--line); border-radius: 9px;
   font-size: 14px; outline: none; font-family: inherit;
   transition: border-color .15s;
 }
+/* iOS Safari: date 입력 네이티브 스타일이 칸을 안 줄여 삐져나오는 것 방지 */
+.inv-f input[type="date"] {
+  -webkit-appearance: none; appearance: none;
+  text-align: left; display: block; box-sizing: border-box;
+}
 .inv-f input:focus, .inv-f select:focus, .inv-f textarea:focus { border-color: var(--accent); }
 .inv-f textarea { resize: vertical; }
 .inv-row { display: flex; gap: 10px; flex-wrap: wrap; }
-.inv-row .inv-f { flex: 1 1 140px; }
+.inv-row .inv-f { flex: 1 1 140px; min-width: 0; }
 .inv-row .inv-f.inv-narrow { flex: 0 1 110px; }
 .inv-newco, .inv-chart {
   border: 1px dashed var(--line); border-radius: 10px;
