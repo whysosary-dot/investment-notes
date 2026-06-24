@@ -5,7 +5,9 @@
   "use strict";
 
   var K_TOKEN = "inv_gh_token", K_CFG = "inv_gh_cfg", K_PENDING = "inv_pending_ops_v1";
+  var K_RECENT = "inv_recent_pushed_v1";
   var IMG_MAXDIM = 1400, IMG_QUALITY = 0.82;
+  var RECENT_TTL_MS = 30 * 60 * 1000; // 푸시 후 Pages 반영 대기 동안 카드 유지(최대 30분)
 
   // ── 유틸 ─────────────────────────────────────────────
   function todayKST() {
@@ -67,21 +69,20 @@
     return null;
   }
 
-  // 데이터에 pending 을 순서대로 적용. flag=true 면 화면표시용 표식/이미지 미리보기 부착
-  function applyPending(data, ops, flag) {
+  // 데이터에 ops 를 순서대로 적용(코어).
+  //   mark: true = 미푸시(_pending), "recent" = 푸시됨·반영대기(_recent), false = 실제 커밋(표식없음)
+  function mergeOps(data, ops, mark) {
     if (!data || !data.companies) return 0;
-    ops = ops || getPending();
-    if (flag === undefined) flag = true;
+    var preview = (mark === true || mark === "recent");
     var applied = 0;
     function co(id) { return data.companies.find(function (c) { return c.id === id; }); }
     function prepCard(card) {
       var cc = clone(card);
-      if (flag) {
-        cc._pending = true;
-        if (cc._uploads && cc.images) {
-          var map = {}; cc._uploads.forEach(function (u) { map[u.path] = u.dataURL; });
-          cc.images = cc.images.map(function (p) { return map[p] || p; }); // 미리보기: 새 이미지=dataURL
-        }
+      if (mark === true) cc._pending = true;
+      else if (mark === "recent") cc._recent = true;
+      if (preview && cc._uploads && cc.images) {
+        var map = {}; cc._uploads.forEach(function (u) { map[u.path] = u.dataURL; });
+        cc.images = cc.images.map(function (p) { return map[p] || p; }); // 미리보기: 새 이미지=dataURL
       }
       return cc;
     }
@@ -90,7 +91,7 @@
         var ex = co(op.company.id);
         if (!ex) {
           var nc = clone(op.company);
-          if (flag) { nc._pending = true; }
+          if (mark === true) nc._pending = true; else if (mark === "recent") nc._recent = true;
           nc.cards = (op.company.cards || []).map(prepCard);
           data.companies.push(nc); applied++;
         } else {
@@ -109,7 +110,7 @@
         var c2 = co(op.companyId);
         if (c2) {
           var idx = (c2.cards || []).findIndex(function (k) { return k.id === op.card.id; });
-          if (idx >= 0) { var e = prepCard(op.card); if (flag) e._edited = true; c2.cards[idx] = e; applied++; }
+          if (idx >= 0) { var e = prepCard(op.card); if (mark === true) e._edited = true; c2.cards[idx] = e; applied++; }
         }
       } else if (op.type === "delete_card") {
         var c3 = co(op.companyId);
@@ -117,7 +118,7 @@
         applied++;
       } else if (op.type === "edit_company") {
         var c4 = co(op.companyId);
-        if (c4) { Object.assign(c4, op.meta); if (flag) c4._pending = true; applied++; }
+        if (c4) { Object.assign(c4, op.meta); if (mark === true) c4._pending = true; applied++; }
       } else if (op.type === "delete_company") {
         data.companies = data.companies.filter(function (c) { return c.id !== op.companyId; });
         applied++;
@@ -126,10 +127,47 @@
     return applied;
   }
 
+  // ── 최근 푸시 오버레이(Pages 반영 지연 대비) ─────────
+  function getRecent() { return jget(K_RECENT, []); }
+  function setRecent(a) { jset(K_RECENT, a); }
+  function companyOf(base, id) { return (base.companies || []).find(function (c) { return c.id === id; }); }
+  // base(갓 fetch 한 커밋본)에 이 op 가 이미 반영됐는지
+  function confirmedLive(base, op) {
+    var c;
+    if (op.type === "add_card") { c = companyOf(base, op.companyId); return !!(c && (c.cards || []).some(function (k) { return k.id === op.card.id; })); }
+    if (op.type === "add_company") { c = companyOf(base, op.company.id); if (!c) return false; return (op.company.cards || []).every(function (card) { return (c.cards || []).some(function (k) { return k.id === card.id; }); }); }
+    if (op.type === "delete_card") { c = companyOf(base, op.companyId); return !c || !(c.cards || []).some(function (k) { return k.id === op.cardId; }); }
+    if (op.type === "delete_company") { return !companyOf(base, op.companyId); }
+    if (op.type === "edit_card") { c = companyOf(base, op.companyId); if (!c) return false; var k = (c.cards || []).find(function (x) { return x.id === op.card.id; }); return !!(k && k.title === op.card.title && (k.date || "") === (op.card.date || "")); }
+    if (op.type === "edit_company") { c = companyOf(base, op.companyId); return !!(c && c.name === op.meta.name && (c.sector || "") === (op.meta.sector || "")); }
+    return false;
+  }
+  // 반영 확인됐거나 TTL 지난 항목 제거
+  function pruneRecent(base) {
+    var now = Date.now();
+    var kept = getRecent().filter(function (r) {
+      if ((now - (r.at || 0)) > RECENT_TTL_MS) return false;
+      try { if (confirmedLive(base, r.op)) return false; } catch (_) {}
+      return true;
+    });
+    setRecent(kept);
+    return kept;
+  }
+
+  // 화면표시용: base(fetch본) 위에 [최근푸시] → [미푸시] 순으로 오버레이
+  function applyForDisplay(data) {
+    if (!data || !data.companies) return 0;
+    var recent = pruneRecent(data).map(function (r) { return r.op; });
+    var n = 0;
+    n += mergeOps(data, recent, "recent");
+    n += mergeOps(data, getPending(), true);
+    return n;
+  }
+
   function stripPending(data) {
     (data.companies || []).forEach(function (c) {
-      delete c._pending; delete c._edited;
-      (c.cards || []).forEach(function (k) { delete k._pending; delete k._edited; delete k._uploads; });
+      delete c._pending; delete c._edited; delete c._recent;
+      (c.cards || []).forEach(function (k) { delete k._pending; delete k._edited; delete k._recent; delete k._uploads; });
     });
   }
 
@@ -137,18 +175,18 @@
   // 편집용 정규 카드(이미지=경로, 표식 제거) 복원: pending op 우선, 없으면 원본
   function resolveCanonicalCard(companyId, cardId) {
     var fp = findPendingCard(getPending(), companyId, cardId);
+    if (!fp) fp = findPendingCard(getRecent().map(function (r) { return r.op; }), companyId, cardId);
     if (fp) return clone(fp.ref);
     var c = (currentData().companies || []).find(function (x) { return x.id === companyId; });
     if (c) {
       var k = (c.cards || []).find(function (x) { return x.id === cardId; });
-      if (k) { var kk = clone(k); delete kk._pending; delete kk._edited; return kk; }
+      if (k) { var kk = clone(k); delete kk._pending; delete kk._edited; delete kk._recent; return kk; }
     }
     return null;
   }
-  function nextCardId(cards) {
-    var max = 0;
-    (cards || []).forEach(function (k) { var m = /card-(\d+)/.exec(k.id || ""); if (m) max = Math.max(max, parseInt(m[1], 10)); });
-    return "card-" + String(max + 1).padStart(3, "0");
+  // 웹에서 추가하는 카드는 충돌 불가능한 고유 ID 사용(스케줄러 card-NNN 과 분리)
+  function uniqueCardId() {
+    return "web-" + Date.now().toString(36) + "-" + Math.floor(Math.random() * 1e9).toString(36);
   }
 
   // ── 이미지 리사이즈 ──────────────────────────────────
@@ -304,11 +342,8 @@
         var base = buildCardFields(m);
         var companyId = isEdit ? opts.companyId : (m.querySelector("#iv-co").value || null);
 
-        // 카드 id 결정
-        var cardId;
-        if (isEdit) cardId = opts.card.id;
-        else if (companyId) cardId = nextCardIdConsidering(companyId);
-        else cardId = "card-001";
+        // 카드 id: 수정은 기존 id 유지, 신규는 충돌 불가능한 고유 id
+        var cardId = isEdit ? opts.card.id : uniqueCardId();
 
         // 이미지 처리: keep + new(경로 부여) → images[], _uploads[]
         var images = [], uploads = [];
@@ -357,14 +392,6 @@
     if (cardObj.images) cardObj.images = cardObj.images.map(function (p) { return p.replace("/misc/", "/" + coId + "/"); });
     if (cardObj._uploads) cardObj._uploads.forEach(function (u) { u.path = u.path.replace("/misc/", "/" + coId + "/"); });
     return cardObj;
-  }
-
-  // 같은 기업 pending add_card 까지 감안해 다음 카드 id
-  function nextCardIdConsidering(companyId) {
-    var c = (currentData().companies || []).find(function (x) { return x.id === companyId; });
-    var cards = (c && c.cards ? c.cards.slice() : []);
-    getPending().forEach(function (op) { if (op.type === "add_card" && op.companyId === companyId) cards.push(op.card); });
-    return nextCardId(cards);
   }
 
   // 수정 op 병합: 미푸시 add 카드면 그 op 를 갱신, 아니면 edit_card upsert
@@ -570,14 +597,20 @@
     }).then(function (j) {
       prog();
       var remote = JSON.parse(b64decUtf8(j.content));
-      applyPending(remote, ops, false);
+      mergeOps(remote, ops, false);
       stripPending(remote);
       remote.last_updated = todayKST();
       return ghPutFile(token, cfg, cfg.path, b64encUtf8(JSON.stringify(remote, null, 1)),
         "Edit via web: " + ops.length + " change(s) " + todayKST(), j.sha);
     }).then(function () {
-      setPending([]); setBarBusy(false);
-      toast("✓ 푸시 완료! 재배포 후 다른 기기에도 반영됩니다.");
+      // 푸시 성공: pending 을 비우되, Pages 반영 전까지 카드가 사라져 보이지 않도록 '최근푸시'로 이동
+      var now = Date.now();
+      var rec = getRecent();
+      ops.forEach(function (op) { rec.push({ at: now, op: op }); });
+      setRecent(rec);
+      setPending([]);
+      setBarBusy(false);
+      toast("✓ 푸시 완료! 사이트 반영까지 1~2분 걸릴 수 있어요 (카드는 계속 보입니다).");
       setTimeout(function () { location.reload(); }, 1600);
     }).catch(function (e) {
       setBarBusy(false); updateBar();
@@ -618,7 +651,7 @@
 
   // ── 공개 API ─────────────────────────────────────────
   window.InvAdmin = {
-    applyPending: function (data) { return applyPending(data, getPending(), true); },
+    applyPending: function (data) { return applyForDisplay(data); },
     refreshBar: updateBar,
     openAddCard: function (id) { openCardModal({ mode: "add", companyId: id }); },
     editCard: function (companyId, cardId) {

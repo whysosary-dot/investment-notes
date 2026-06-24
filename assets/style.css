@@ -352,6 +352,7 @@ body {
   font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 999px;
   vertical-align: 1px;
 }
+.inv-pending-tag.sync { background: rgba(31,111,235,.16); color: #1f6feb; }
 
 /* ── admin: 토스트 ───────────────────────────────────── */
 .inv-toast {

@@ -258,7 +258,8 @@
       const tags = (k.tags || []).map(t => '<span class="tag">' + escapeHtml(t) + "</span>").join("");
 
       const pendTag = k._edited ? '<span class="inv-pending-tag">수정·미푸시</span>'
-                    : (k._pending ? '<span class="inv-pending-tag">미푸시</span>' : "");
+                    : (k._pending ? '<span class="inv-pending-tag">미푸시</span>'
+                    : (k._recent ? '<span class="inv-pending-tag sync">반영 중</span>' : ""));
       const adminBar = window.InvAdmin
         ? '<div class="card-admin">' +
             '<button class="inv-mini" data-edit="' + escapeAttr(k.id) + '">수정</button>' +
