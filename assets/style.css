@@ -363,3 +363,47 @@ body {
 }
 .inv-toast.show { opacity: 1; transform: translate(-50%, 0); }
 .inv-toast.err { background: #e5484d; color: #fff; }
+
+/* ── admin: 수정/삭제 버튼 ───────────────────────────── */
+.inv-btn.danger { background: #e5484d; color: #fff; border-color: #e5484d; }
+.inv-btn.danger:hover { border-color: #c93b40; background: #d23e43; }
+.inv-mini {
+  border: 1px solid var(--line); background: var(--panel-2); color: var(--muted);
+  border-radius: 8px; padding: 5px 11px; font-size: 12px; cursor: pointer;
+  transition: border-color .15s, color .15s;
+}
+.inv-mini:hover { border-color: var(--accent); color: var(--accent); }
+.inv-mini.danger:hover { border-color: #e5484d; color: #e5484d; }
+.card-admin {
+  display: flex; gap: 6px; justify-content: flex-end;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--line);
+}
+.inv-co-admin { display: flex; gap: 8px; margin-top: 12px; }
+
+/* ── admin: 카드 이미지 갤러리 ───────────────────────── */
+.card-imgs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.card-imgs .img {
+  display: block; flex: 0 0 auto; width: calc(50% - 4px);
+  border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--panel-2);
+}
+.card-imgs .img:only-child { width: 100%; }
+.card-imgs .img img { display: block; width: 100%; height: auto; }
+
+/* ── admin: 모달 이미지 미리보기 ─────────────────────── */
+.inv-img-prev { display: flex; flex-wrap: wrap; gap: 8px; margin: -4px 0 12px; }
+.inv-thumb { position: relative; width: 84px; }
+.inv-thumb img {
+  display: block; width: 84px; height: 84px; object-fit: cover;
+  border-radius: 8px; border: 1px solid var(--line);
+}
+.inv-thumb-x {
+  position: absolute; top: -6px; right: -6px;
+  width: 20px; height: 20px; border-radius: 50%;
+  background: #e5484d; color: #fff; border: none; cursor: pointer;
+  font-size: 11px; line-height: 1; display: flex; align-items: center; justify-content: center;
+}
+.inv-img-sz { display: block; font-size: 10px; color: var(--muted); text-align: center; margin-top: 2px; }
+.inv-editing-co { font-size: 13px; color: var(--muted); margin: 0 0 12px; }
+.inv-editing-co b { color: var(--text); }
+.inv-confirm { max-width: 400px; }
+.inv-confirm-msg { font-size: 14px; line-height: 1.5; white-space: pre-line; margin: 4px 0; }

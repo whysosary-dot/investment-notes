@@ -38,6 +38,20 @@
   }
   metaEl.textContent = [company.ticker, company.sector].filter(Boolean).join(" · ");
 
+  // 기업 수정/삭제 컨트롤
+  try {
+    if (window.InvAdmin && metaEl.parentElement) {
+      const coAdmin = document.createElement("div");
+      coAdmin.className = "inv-co-admin";
+      coAdmin.innerHTML =
+        '<button class="inv-mini" id="iv-co-edit">기업 수정</button>' +
+        '<button class="inv-mini danger" id="iv-co-del">기업 삭제</button>';
+      metaEl.parentElement.appendChild(coAdmin);
+      coAdmin.querySelector("#iv-co-edit").addEventListener("click", () => window.InvAdmin.editCompany(company));
+      coAdmin.querySelector("#iv-co-del").addEventListener("click", () => window.InvAdmin.deleteCompany(company));
+    }
+  } catch (_) {}
+
   const cards = (company.cards || []).slice().sort((a, b) => {
     return String(b.date || "").localeCompare(String(a.date || ""));
   });
@@ -200,9 +214,15 @@
       const div = document.createElement("article");
       div.className = "card" + (k._pending ? " is-pending" : "");
 
-      const imgBlock = k.source_image
-        ? '<a class="img" href="' + encodeURI(k.source_image) + '" target="_blank" rel="noopener">' +
-          '<img loading="lazy" src="' + encodeURI(k.source_image) + '" alt="source image" /></a>'
+      let imgs = [];
+      if (k.source_image) imgs.push(k.source_image);
+      if (Array.isArray(k.images)) imgs = imgs.concat(k.images);
+      const srcAttr = (s) => (s && s.indexOf("data:") === 0) ? s : encodeURI(s || "");
+      const imgBlock = imgs.length
+        ? '<div class="card-imgs">' + imgs.map(s =>
+            '<a class="img" href="' + srcAttr(s) + '" target="_blank" rel="noopener">' +
+            '<img loading="lazy" src="' + srcAttr(s) + '" alt="첨부 이미지" /></a>').join("") +
+          '</div>'
         : "";
 
       // support both chart (single) and charts (array)
@@ -237,13 +257,21 @@
       const bullets = (k.summary || []).map(s => "<li>" + escapeHtml(s) + "</li>").join("");
       const tags = (k.tags || []).map(t => '<span class="tag">' + escapeHtml(t) + "</span>").join("");
 
+      const pendTag = k._edited ? '<span class="inv-pending-tag">수정·미푸시</span>'
+                    : (k._pending ? '<span class="inv-pending-tag">미푸시</span>' : "");
+      const adminBar = window.InvAdmin
+        ? '<div class="card-admin">' +
+            '<button class="inv-mini" data-edit="' + escapeAttr(k.id) + '">수정</button>' +
+            '<button class="inv-mini danger" data-del="' + escapeAttr(k.id) + '">삭제</button>' +
+          '</div>'
+        : "";
       div.innerHTML =
-        "<h3>" + escapeHtml(k.title || "(제목 없음)") +
-        (k._pending ? '<span class="inv-pending-tag">미푸시</span>' : "") + "</h3>" +
+        "<h3>" + escapeHtml(k.title || "(제목 없음)") + pendTag + "</h3>" +
         '<p class="date">' + escapeHtml(k.date || "") + "</p>" +
         imgBlock + chartBlock +
         (bullets ? "<ul>" + bullets + "</ul>" : "") +
-        (tags ? '<div class="tags">' + tags + "</div>" : "");
+        (tags ? '<div class="tags">' + tags + "</div>" : "") +
+        adminBar;
       cardsEl.appendChild(div);
     }
 
@@ -286,6 +314,21 @@
   }
 
   q.addEventListener("input", filter);
+
+  // 카드 수정/삭제 (이벤트 위임 — 1회 등록)
+  cardsEl.addEventListener("click", (e) => {
+    if (!window.InvAdmin) return;
+    const ed = e.target.closest("[data-edit]");
+    const dl = e.target.closest("[data-del]");
+    if (ed) { e.preventDefault(); window.InvAdmin.editCard(company.id, ed.getAttribute("data-edit")); }
+    else if (dl) {
+      e.preventDefault();
+      const cid = dl.getAttribute("data-del");
+      const card = (company.cards || []).find(c => c.id === cid);
+      window.InvAdmin.deleteCard(company.id, cid, card && card.title);
+    }
+  });
+
   render(cards);
 
   function escapeHtml(s) {
