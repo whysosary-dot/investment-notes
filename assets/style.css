@@ -388,12 +388,11 @@ body {
 .inv-co-admin { display: flex; gap: 8px; margin-top: 12px; }
 
 /* ── admin: 카드 이미지 갤러리 ───────────────────────── */
-.card-imgs { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.card-imgs { display: flex; flex-direction: column; gap: 10px; margin: 0 0 12px; }
 .card-imgs .img {
-  display: block; flex: 0 0 auto; width: calc(50% - 4px);
+  display: block; width: 100%;
   border-radius: 10px; overflow: hidden; border: 1px solid var(--line); background: var(--panel-2);
 }
-.card-imgs .img:only-child { width: 100%; }
 .card-imgs .img img { display: block; width: 100%; height: auto; }
 
 /* ── admin: 모달 이미지 미리보기 ─────────────────────── */
