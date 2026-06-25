@@ -311,7 +311,7 @@
   }
 
   // 본문이 길면 접기/펼치기 토글 추가 (공간 절약)
-  const COLLAPSE_AT = 360;   // 본문 높이가 이보다 크면 접을 수 있게
+  const COLLAPSE_AT = 800;   // 본문 높이가 이보다 크면 접을 수 있게
   function setupCollapsibles() {
     cardsEl.querySelectorAll(".card").forEach(card => {
       const body = card.querySelector(".card-body");
