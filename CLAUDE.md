@@ -105,7 +105,8 @@
 | `energy` | 에너지 | 정유·LNG·원전·전력·유틸리티 |
 | `biotech` | 바이오/헬스케어 | 제약·의료기기·임상·CMO |
 | `it-platform` | IT/플랫폼 | AI·클라우드·SaaS·빅테크 |
-| `shipbuilding-defense` | 조선/방산 | LNG선·K방산 수출 |
+| `shipbuilding` | 조선 | LNG선·컨테이너선·가스운반선·조선 수퍼사이클 |
+| `defense` | 방산 | 잠수함·구축함·전차·유도탄·방공·K방산 수출 |
 | `consumer` | 소비재/뷰티 | K뷰티·식품·내수 소비 |
 
 ### 산업 카드 추가 규칙
