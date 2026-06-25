@@ -294,17 +294,45 @@
       div.innerHTML =
         "<h3>" + colorDot + escapeHtml(k.title || "(제목 없음)") + pendTag + "</h3>" +
         '<p class="date">' + escapeHtml(k.date || "") + "</p>" +
-        imgBlock + chartBlock +
-        (bullets ? "<ul>" + bullets + "</ul>" : "") +
-        (tags ? '<div class="tags">' + tags + "</div>" : "") +
+        '<div class="card-body">' +
+          imgBlock + chartBlock +
+          (bullets ? "<ul>" + bullets + "</ul>" : "") +
+          (tags ? '<div class="tags">' + tags + "</div>" : "") +
+        '</div>' +
         adminBar;
       cardsEl.appendChild(div);
     }
 
     requestAnimationFrame(() => {
       chartQueue.forEach(({ id, cfg }) => drawChart(id, cfg));
+      requestAnimationFrame(setupCollapsibles);
     });
     counter.textContent = list.length + " / " + cards.length;
+  }
+
+  // 본문이 길면 접기/펼치기 토글 추가 (공간 절약)
+  const COLLAPSE_AT = 360;   // 본문 높이가 이보다 크면 접을 수 있게
+  function setupCollapsibles() {
+    cardsEl.querySelectorAll(".card").forEach(card => {
+      const body = card.querySelector(".card-body");
+      if (!body || card.querySelector(".card-toggle")) return;
+      if (body.scrollHeight <= COLLAPSE_AT) return;
+      card.classList.add("is-collapsible", "collapsed");
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "card-toggle";
+      btn.setAttribute("aria-expanded", "false");
+      btn.innerHTML = '<span class="ct-ico">⌄</span> 더보기';
+      btn.addEventListener("click", () => {
+        const collapsed = card.classList.toggle("collapsed");
+        btn.setAttribute("aria-expanded", String(!collapsed));
+        btn.innerHTML = collapsed
+          ? '<span class="ct-ico">⌄</span> 더보기'
+          : '<span class="ct-ico">⌃</span> 접기';
+        if (collapsed) card.scrollIntoView({ block: "nearest" });
+      });
+      body.insertAdjacentElement("afterend", btn);
+    });
   }
 
   // 한글 음절을 첫 자음(초성)으로 변환. 예: "삼성전자" → "ㅅㅅㅈㅈ"
