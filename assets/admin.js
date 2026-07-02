@@ -70,7 +70,7 @@
       branch: s.branch || d.branch || "main", path: s.path || d.path || "data/companies.json"
     };
   }
-  function getToken() { return lsGet(K_TOKEN, "") || ""; }
+  function getToken() { return lsGet(K_TOKEN, "") || (window.localStorage && localStorage.getItem("sv_github_pat")) || ""; }
 
   // ── pending ──────────────────────────────────────────
   function getPending() { return jget(K_PENDING, []); }
@@ -665,11 +665,12 @@
   }
 
   // ── 커밋 & 푸시 ──────────────────────────────────────
-  function pushPending() {
+  // Promise 반환 코어 — 성공 시 결과 메시지 resolve, 변경 없으면 "변경 없음"
+  function pushPendingCore() {
     var ops = getPending();
-    if (!ops.length) { toast("푸시할 변경이 없습니다."); return; }
+    if (!ops.length) return Promise.resolve("변경 없음");
     var token = getToken(), cfg = getCfg();
-    if (!token) { toast("먼저 GitHub 토큰을 설정하세요.", "err"); openSettings(function () { pushPending(); }); return; }
+    if (!token) return Promise.reject(new Error("GitHub 토큰 미설정"));
 
     // 업로드할 이미지 모으기
     var uploads = [];
@@ -683,7 +684,7 @@
     function prog(msg) { step++; setBarBusy(true, "푸시 " + step + "/" + totalSteps + "…"); }
 
     // 1) 이미지들 순차 업로드 → 2) companies.json 커밋
-    uploads.reduce(function (p, u) {
+    return uploads.reduce(function (p, u) {
       return p.then(function () {
         prog();
         var content = u.dataURL.slice(u.dataURL.indexOf(",") + 1);
@@ -707,11 +708,42 @@
       setRecent(rec);
       setPending([]);
       setBarBusy(false);
+      return ops.length + "건 푸시 완료";
+    }).catch(function (e) {
+      setBarBusy(false); updateBar();
+      throw e;
+    });
+  }
+
+  function pushPending() {
+    var ops = getPending();
+    if (!ops.length) { toast("푸시할 변경이 없습니다."); return; }
+    if (!getToken()) { toast("먼저 GitHub 토큰을 설정하세요.", "err"); openSettings(function () { pushPending(); }); return; }
+    pushPendingCore().then(function (msg) {
+      if (msg === "변경 없음") { toast("푸시할 변경이 없습니다."); return; }
       toast("✓ 푸시 완료! 사이트 반영까지 1~2분 걸릴 수 있어요 (카드는 계속 보입니다).");
       setTimeout(function () { location.reload(); }, 1600);
     }).catch(function (e) {
-      setBarBusy(false); updateBar();
       toast(e.message || String(e), "err");
+    });
+  }
+
+  // ── Stock Valuation 대시보드 통합 커밋 (iframe 내장 시) ──
+  if (window.self !== window.top) {
+    // 대시보드 탭 안에서는 자체 푸시 버튼 숨김 (통합 버튼으로 일원화)
+    var _svStyle = document.createElement("style");
+    _svStyle.textContent = ".inv-fab-btn.push{display:none!important}";
+    document.head.appendChild(_svStyle);
+    window.addEventListener("message", function (e) {
+      if (e.origin !== "https://whysosary-dot.github.io" || !e.data || !e.data.type) return;
+      if (e.data.type === "sv-ping") { e.source.postMessage({ type: "sv-pong", repo: "investment-notes" }, e.origin); return; }
+      if (e.data.type !== "sv-commit") return;
+      pushPendingCore().then(function (msg) {
+        e.source.postMessage({ type: "sv-commit-result", repo: "investment-notes", ok: true, msg: msg }, e.origin);
+        if (msg !== "변경 없음") setTimeout(function () { location.reload(); }, 1200);
+      }).catch(function (err) {
+        e.source.postMessage({ type: "sv-commit-result", repo: "investment-notes", ok: false, msg: err.message || String(err) }, e.origin);
+      });
     });
   }
 
