@@ -238,7 +238,7 @@ body {
 }
 
 .card-body { position: relative; }
-.card.collapsed .card-body { max-height: 260px; overflow: hidden; }
+.card.collapsed .card-body { max-height: 800px; overflow: hidden; }
 .card.collapsed .card-body::after {
   content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 56px;
   background: linear-gradient(to bottom, rgba(0,0,0,0), var(--panel));
