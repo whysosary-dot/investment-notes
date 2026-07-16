@@ -1,5 +1,12 @@
 # Claude 작업 지침 — investment-notes
 
+> ⚠️ **데이터 위치 변경 (2026-07-16)**: 카드 데이터와 이미지는 이제 비공개 리포
+> **`whysosary-dot/invest-private`** 에 있습니다.
+> - 카드 JSON: `research/companies.json` (이 리포의 data/companies.json 아님!)
+> - 이미지: `research/images/<company-id>/...`
+> - 커밋도 invest-private 에 해야 함. 이 리포(investment-notes)에는 코드만 커밋.
+
+
 이 저장소에서 작업할 때 따라야 할 규칙입니다.
 
 ## 사용자가 이미지를 업로드하며 "정리해줘/추가해줘/푸시해줘"라고 하면
