@@ -9,7 +9,15 @@
 
   let data;
   try {
-    const res = await fetch("data/companies.json?ts=" + Date.now());
+    const res = await (function(){
+    var pat = (localStorage.getItem("sv_github_pat") || "").trim();
+    if (!pat) return Promise.reject(new Error("NO_PAT — 대시보드 ⚙️에서 GitHub 토큰을 저장하세요"));
+    return fetch("https://api.github.com/repos/whysosary-dot/invest-private/contents/research/companies.json?ref=main&ts=" + Date.now(), {
+      cache: "no-store",
+      headers: { Authorization: "token " + pat, Accept: "application/vnd.github.raw" }
+    });
+  })();
+    if (!res.ok) throw new Error("HTTP " + res.status);
     data = await res.json();
   } catch (e) {
     grid.innerHTML = '<p style="color:#c33">데이터를 불러올 수 없습니다 (' + e + ')</p>';
