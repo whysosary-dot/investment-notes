@@ -61,13 +61,13 @@
         if (parts.length > 0 && !/\.html?$/.test(parts[0])) repo = parts[0];
       }
     } catch (_) {}
-    return { owner: owner, repo: repo, branch: "main", path: "data/companies.json" };
+    return { owner: "whysosary-dot", repo: "invest-private", branch: "main", path: "research/companies.json" };
   }
   function getCfg() {
     var d = detectRepo(), s = jget(K_CFG, {});
     return {
-      owner: s.owner || d.owner || "", repo: s.repo || d.repo || "",
-      branch: s.branch || d.branch || "main", path: s.path || d.path || "data/companies.json"
+      owner: d.owner || "", repo: d.repo || "",
+      branch: d.branch || "main", path: d.path || "research/companies.json"
     };
   }
   function getToken() { return lsGet(K_TOKEN, "") || (window.localStorage && localStorage.getItem("sv_github_pat")) || ""; }
@@ -416,7 +416,7 @@
         imgItems.forEach(function (it, i) {
           if (it.kind === "keep") { images.push(it.path); }
           else {
-            var path = it.path || ("images/" + (companyId || base._newCoId || "misc") + "/" + cardId + "-" + Date.now() + "-" + i + ".jpg");
+            var path = it.path || ("research/images/" + (companyId || base._newCoId || "misc") + "/" + cardId + "-" + Date.now() + "-" + i + ".jpg");
             images.push(path); uploads.push({ path: path, dataURL: it.dataURL });
           }
         });
