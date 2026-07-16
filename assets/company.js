@@ -38,7 +38,15 @@
 
   // 데이터(미푸시 병합 포함)를 다시 불러와 company/cards 갱신 — 재호출 가능
   async function loadData() {
-    const res = await fetch("data/companies.json?ts=" + Date.now());
+    const res = await (function(){
+    var pat = (localStorage.getItem("sv_github_pat") || "").trim();
+    if (!pat) return Promise.reject(new Error("NO_PAT — 대시보드 ⚙️에서 GitHub 토큰을 저장하세요"));
+    return fetch("https://api.github.com/repos/whysosary-dot/invest-private/contents/research/companies.json?ref=main&ts=" + Date.now(), {
+      cache: "no-store",
+      headers: { Authorization: "token " + pat, Accept: "application/vnd.github.raw" }
+    });
+  })();
+    if (!res.ok) throw new Error("HTTP " + res.status);
     data = await res.json();
     try { if (window.InvAdmin) window.InvAdmin.applyPending(data); } catch (_) {}
     window.__INV_DATA = data;
@@ -243,10 +251,13 @@
       if (k.source_image) imgs.push(k.source_image);
       if (Array.isArray(k.images)) imgs = imgs.concat(k.images);
       const srcAttr = (s) => (s && s.indexOf("data:") === 0) ? s : encodeURI(s || "");
+      // 비공개 리포 이미지: data-priv 로 표시해두고 렌더 후 인증 fetch 로 채움
       const imgBlock = imgs.length
-        ? '<div class="card-imgs">' + imgs.map(s =>
-            '<a class="img" href="' + srcAttr(s) + '" target="_blank" rel="noopener">' +
-            '<img loading="lazy" src="' + srcAttr(s) + '" alt="첨부 이미지" /></a>').join("") +
+        ? '<div class="card-imgs">' + imgs.map(s => {
+            if (s && s.indexOf("data:") === 0)
+              return '<a class="img" href="' + srcAttr(s) + '" target="_blank" rel="noopener"><img loading="lazy" src="' + srcAttr(s) + '" alt="첨부 이미지" /></a>';
+            return '<a class="img" href="#" rel="noopener"><img data-priv="' + escapeAttr(s || "") + '" alt="첨부 이미지" /></a>';
+          }).join("") +
           '</div>'
         : "";
 
@@ -460,4 +471,31 @@
   function escapeAttr(s) {
     return String(s).replace(/[&<>"']/g, ch => ({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"}[ch]));
   }
+
+  // ── 비공개 리포 이미지 하이드레이션 (data-priv → 인증 blob) ──
+  const _privBlobCache = {};
+  async function _hydratePrivImages() {
+    const pat = (localStorage.getItem("sv_github_pat") || "").trim();
+    if (!pat) return;
+    const imgs = document.querySelectorAll("img[data-priv]");
+    for (const img of imgs) {
+      const rel = img.getAttribute("data-priv");
+      img.removeAttribute("data-priv");
+      try {
+        if (!_privBlobCache[rel]) {
+          const r = await fetch("https://api.github.com/repos/whysosary-dot/invest-private/contents/research/" + encodeURI(rel) + "?ref=main", {
+            headers: { Authorization: "token " + pat, Accept: "application/vnd.github.raw" }
+          });
+          if (!r.ok) continue;
+          _privBlobCache[rel] = URL.createObjectURL(await r.blob());
+        }
+        img.src = _privBlobCache[rel];
+        const a = img.closest("a.img");
+        if (a) a.href = _privBlobCache[rel];
+      } catch (_) {}
+    }
+  }
+  new MutationObserver(() => { _hydratePrivImages(); }).observe(document.getElementById("cards") || document.body, { childList: true, subtree: true });
+  _hydratePrivImages();
+
 })();
