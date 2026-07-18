@@ -277,7 +277,7 @@
     var card = isEdit ? (opts.card || {}) : {};
 
     var m = document.createElement("div");
-    m.className = "inv-modal";
+    m.className = "inv-modal inv-full"; // 카드 작성은 전체 화면
     m.innerHTML =
       '<div class="inv-modal-hd"><h2>' + (isEdit ? "카드 수정" : "카드 추가") + '</h2><button class="inv-x" data-x>✕</button></div>' +
       '<div class="inv-modal-bd">' +
@@ -287,7 +287,6 @@
             '<div id="iv-newco" class="inv-newco" hidden>' +
               '<div class="inv-row">' +
                 '<label class="inv-f"><span>종목/산업명 *</span><input id="iv-name" placeholder="예: 삼성전자" /></label>' +
-                '<label class="inv-f"><span>ID(영문 slug) *</span><input id="iv-id" placeholder="예: samsung-electronics" /></label>' +
               '</div>' +
               '<div class="inv-row">' +
                 '<label class="inv-f"><span>티커</span><input id="iv-ticker" placeholder="예: 005930" /></label>' +
@@ -487,11 +486,13 @@
   }
   function buildCompanyFields(m) {
     var name = m.querySelector("#iv-name").value.trim();
-    var id = m.querySelector("#iv-id").value.trim().toLowerCase().replace(/\s+/g, "-");
     if (!name) throw new Error("신규 기업/산업명을 입력하세요.");
-    if (!id) throw new Error("영문 ID(slug)를 입력하세요.");
-    if (!/^[a-z0-9][a-z0-9-]*$/.test(id)) throw new Error("ID는 영문 소문자·숫자·하이픈만 사용하세요.");
-    if ((currentData().companies || []).some(function (c) { return c.id === id; })) throw new Error("이미 존재하는 ID: " + id);
+    // ID 자동 생성: 티커 있으면 t<티커>, 없으면 co-<타임스탬프> — 중복 시 접미사
+    var ticker = m.querySelector("#iv-ticker").value.trim();
+    var base = ticker ? ("t" + ticker.toLowerCase().replace(/[^a-z0-9]/g, "")) : ("co-" + Date.now().toString(36));
+    var id = base, n = 2;
+    var ids = (currentData().companies || []).map(function (c) { return c.id; });
+    while (ids.indexOf(id) !== -1) { id = base + "-" + (n++); }
     var co = { id: id, name: name, ticker: m.querySelector("#iv-ticker").value.trim(), sector: m.querySelector("#iv-sector").value.trim(),
       tags: [], created_at: todayKST(), last_updated: todayKST(), cards: [] };
     co.type = (m.querySelector("#iv-type").value === "industry") ? "industry" : "company";
