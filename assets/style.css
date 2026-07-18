@@ -520,9 +520,17 @@ body {
 
 /* ── 카드 작성 전체 화면 모달 ── */
 .inv-modal.inv-full {
-  max-width: min(96vw, 1100px); width: 96vw; height: 94vh;
+  width: 100%; max-width: 1100px; height: 94vh;
+  box-sizing: border-box;
   display: flex; flex-direction: column;
 }
-.inv-modal.inv-full .inv-modal-bd { flex: 1; overflow-y: auto; }
-.inv-modal.inv-full textarea { min-height: 34vh; font-size: 15px; }
-.inv-modal.inv-full input { font-size: 15px; }
+.inv-modal.inv-full * { box-sizing: border-box; }
+.inv-modal.inv-full .inv-modal-bd { flex: 1; overflow-y: auto; overflow-x: hidden; }
+.inv-modal.inv-full textarea { min-height: 34vh; font-size: 15px; max-width: 100%; }
+.inv-modal.inv-full input { font-size: 15px; max-width: 100%; }
+/* 아이폰: 완전 전체 화면 + 필드 세로 배치 (가로 넘침 방지) */
+@media (max-width: 640px) {
+  .inv-modal-overlay:has(.inv-full) { padding: 0; }
+  .inv-modal.inv-full { max-width: 100%; height: 100dvh; border-radius: 0; }
+  .inv-modal.inv-full .inv-row { flex-direction: column; }
+}
