@@ -516,3 +516,13 @@ body {
   max-width: 96vw; max-height: 96vh; width: auto; height: auto;
   border-radius: 8px; box-shadow: 0 10px 44px rgba(0, 0, 0, .5);
 }
+
+
+/* ── 카드 작성 전체 화면 모달 ── */
+.inv-modal.inv-full {
+  max-width: min(96vw, 1100px); width: 96vw; height: 94vh;
+  display: flex; flex-direction: column;
+}
+.inv-modal.inv-full .inv-modal-bd { flex: 1; overflow-y: auto; }
+.inv-modal.inv-full textarea { min-height: 34vh; font-size: 15px; }
+.inv-modal.inv-full input { font-size: 15px; }
