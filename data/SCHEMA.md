@@ -42,7 +42,21 @@
 
 ## 카드 선택 필드
 
-- `chart` (단일) 또는 `charts` (배열): 차트 시각화. type=`bar`/`bar-h`/`donut`/`line`.
+- `chart` (단일) 또는 `charts` (배열): 차트 시각화. type=`bar`/`bar-h`/`donut`/`line`/`bar-stack`.
+- `bar-stack`(스택 막대, 2026-07-23 추가): 분기별 사업부문/지역별 매출처럼 구성요소를 쌓아 보여줄 때.
+  ```json
+  {
+    "type": "bar-stack", "title": "사업부문별 매출", "unit": "억원",
+    "labels": ["24.1Q", "24.2Q"],
+    "series": [
+      { "label": "선박엔진", "data": [438, 688], "color": "#8a6d3b" },
+      { "label": "엔진부품", "data": [174, 161], "color": "#8fbfe0" }
+    ],
+    "datalabels": true, "datalabels_min": 30
+  }
+  ```
+  - `series[].color` 생략 시 기본 팔레트 순환. 첫 series가 스택 맨 아래.
+  - `datalabels`: false로 끄기 가능(기본 켜짐). `datalabels_min`: 이 값 미만 세그먼트는 라벨 생략(기본: 최대 스택합의 4%).
 - `images`: 첨부 이미지 경로 배열 (예: `["images/inbody/card-004-...jpg"]`). 단일 `source_image`도 계속 지원.
 - `added_at`: 카드 추가 시점(작업일). 초록불/“미푸시” 판단 기준.
 

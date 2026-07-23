@@ -63,6 +63,21 @@
        "colors": ["#378ADD", "#85B7EB", "#534AB7"]
      }
      ```
+   - **`type: "bar-stack"`** — 스택 막대 (2026-07-23 추가). 분기별 사업부문·지역별 매출 등 구성요소 누적 추이.
+     ```json
+     "chart": {
+       "type": "bar-stack",
+       "title": "사업부문별 매출", "unit": "억원",
+       "labels": ["24.1Q","24.2Q","24.3Q"],
+       "series": [
+         { "label": "선박엔진", "data": [438, 688, 642], "color": "#8a6d3b" },
+         { "label": "엔진부품", "data": [174, 161, 161], "color": "#8fbfe0" },
+         { "label": "기타", "data": [1, 3, 3], "color": "#cfcfcf" }
+       ],
+       "datalabels_min": 30
+     }
+     ```
+     첫 series가 스택 맨 아래. 세그먼트 값 라벨 자동 표시(어두운 색 위엔 흰 글씨). `datalabels_min` 미만 값은 라벨 생략.
    - **`type: "donut"`** — 도넛. 매출 구성비, 투자 배분, 포트폴리오.
      ```json
      "chart": {

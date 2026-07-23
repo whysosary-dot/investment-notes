@@ -149,6 +149,57 @@
       return;
     }
 
+    if (type === "bar-stack") {
+      const COLORS = ["#8a6d3b", "#8fbfe0", "#a8c99a", "#cfcfcf", "#534AB7", "#EF9F27", "#D4537E", "#0F6E56"];
+      const series = cfg.series || [];
+      const usePlug = (typeof ChartDataLabels !== "undefined") && cfg.datalabels !== false;
+      const totals = (cfg.labels || []).map((_, i) => series.reduce((t, s) => t + (Number(s.data[i]) || 0), 0));
+      const dlMin = cfg.datalabels_min != null ? cfg.datalabels_min : Math.max.apply(null, totals.concat([0])) * 0.04;
+      function isDarkHex(h) {
+        if (!h || h[0] !== "#") return false;
+        const r = parseInt(h.slice(1, 3), 16), g = parseInt(h.slice(3, 5), 16), b = parseInt(h.slice(5, 7), 16);
+        return (0.299 * r + 0.587 * g + 0.114 * b) < 140;
+      }
+      new Chart(canvas, {
+        type: "bar",
+        plugins: usePlug ? [ChartDataLabels] : [],
+        data: {
+          labels: cfg.labels,
+          datasets: series.map((s, i) => ({
+            label: s.label,
+            data: s.data,
+            backgroundColor: s.color || COLORS[i % COLORS.length]
+          }))
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          layout: { padding: { top: 14 } },
+          plugins: {
+            legend: { display: true, position: "top", labels: { font: { size: 10 }, boxWidth: 10, padding: 6 } },
+            datalabels: usePlug ? {
+              color: ctx => isDarkHex(ctx.dataset.backgroundColor) ? "#fff" : "#333",
+              font: { size: 10, weight: "600" },
+              formatter: v => (v != null && Math.abs(v) >= dlMin) ? Number(v).toLocaleString() : ""
+            } : undefined,
+            tooltip: {
+              callbacks: {
+                label: ctx => " " + ctx.dataset.label + ": " + ctx.parsed.y.toLocaleString() + (cfg.unit ? " " + cfg.unit : ""),
+                afterBody: items => {
+                  const i = items[0].dataIndex;
+                  return " 합계: " + (totals[i] || 0).toLocaleString() + (cfg.unit ? " " + cfg.unit : "");
+                }
+              }
+            }
+          },
+          scales: {
+            x: { stacked: true, ticks: { font: { size: 10 }, autoSkip: false, maxRotation: 45 }, grid: { display: false } },
+            y: { stacked: true, beginAtZero: true, ticks: { font: { size: 10 }, callback: v => v.toLocaleString() }, grid: { color: "rgba(130,130,130,0.12)" } }
+          }
+        }
+      });
+      return;
+    }
+
     if (type === "bar-h") {
       const defColors = cfg.data.map(() => "#85B7EB");
       const bg = cfg.colors || defColors;
@@ -225,6 +276,7 @@
     const type = cfg.type || "bar";
     if (type === "donut") return 160;
     if (type === "bar-h") return Math.max(cfg.labels.length * 38 + 44, 110);
+    if (type === "bar-stack") return 240;
     if (type === "line") return 150;
     return 150;
   }
